@@ -1,10 +1,6 @@
 "use client";
 
-import {
-    FormEvent,
-    useEffect,
-    useState,
-} from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -20,38 +16,60 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useTheme } from "@/components/theme-provider";
 
 export default function LoginPage() {
-    const [mode, setMode] =
-        useState<"login" | "signup">("login");
+    const [mode, setMode] = useState<"login" | "signup">("login");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    const [email, setEmail] =
-        useState("");
-
-    const [password, setPassword] =
-        useState("");
-
-    const [showPassword, setShowPassword] =
-        useState(false);
-
-    const [loading, setLoading] =
-        useState(false);
-
-    const [message, setMessage] =
-        useState<string | null>(null);
-
-    const [error, setError] =
-        useState<string | null>(null);
-
-    const [mounted, setMounted] =
-        useState(false);
-
-    const {
-        darkMode,
-        toggleTheme,
-    } = useTheme();
+    const { darkMode, toggleTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    async function handleForgotPassword() {
+        setError(null);
+        setMessage(null);
+
+        const trimmedEmail = email.trim();
+
+        if (!trimmedEmail) {
+            setError("Please enter your email address first.");
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const { error: resetError } =
+                await supabaseBrowser.auth.resetPasswordForEmail(
+                    trimmedEmail,
+                    {
+                        redirectTo: `${window.location.origin}/auth/reset-password`,
+                    }
+                );
+
+            if (resetError) {
+                throw new Error(resetError.message);
+            }
+
+            setMessage(
+                "If an account exists for this email, a password reset link has been sent. Please check your inbox and spam folder."
+            );
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Something went wrong."
+            );
+        } finally {
+            setLoading(false);
+        }
+    }
 
     async function handleSubmit(
         event: FormEvent<HTMLFormElement>
@@ -63,10 +81,9 @@ export default function LoginPage() {
         setMessage(null);
 
         try {
-            const normalizedEmail =
-                email.trim().toLowerCase();
+            const trimmedEmail = email.trim();
 
-            if (!normalizedEmail || !password) {
+            if (!trimmedEmail || !password) {
                 throw new Error(
                     "Please enter your email and password."
                 );
@@ -79,19 +96,15 @@ export default function LoginPage() {
             }
 
             if (mode === "login") {
-                const {
-                    error: signInError,
-                } =
-                    await supabaseBrowser.auth.signInWithPassword(
-                        {
-                            email: normalizedEmail,
-                            password,
-                        }
-                    );
+                const { error: signInError } =
+                    await supabaseBrowser.auth.signInWithPassword({
+                        email: trimmedEmail,
+                        password,
+                    });
 
                 if (signInError) {
                     throw new Error(
-                        signInError.message
+                        "Email or password is incorrect. Please check your credentials and try again."
                     );
                 }
 
@@ -99,12 +112,9 @@ export default function LoginPage() {
                 return;
             }
 
-            const {
-                data,
-                error: signUpError,
-            } =
+            const { data, error: signUpError } =
                 await supabaseBrowser.auth.signUp({
-                    email: normalizedEmail,
+                    email: trimmedEmail,
                     password,
                     options: {
                         emailRedirectTo:
@@ -113,9 +123,7 @@ export default function LoginPage() {
                 });
 
             if (signUpError) {
-                throw new Error(
-                    signUpError.message
-                );
+                throw new Error(signUpError.message);
             }
 
             if (data.session) {
@@ -123,12 +131,32 @@ export default function LoginPage() {
                 return;
             }
 
+            /*
+             * Supabase intentionally returns an obfuscated/fake user
+             * when someone tries to sign up with an already-confirmed
+             * email while email confirmation is enabled.
+             *
+             * In that case the returned user has no identities.
+             */
+            const identities = data.user?.identities;
+
+            const emailAlreadyRegistered =
+                Array.isArray(identities) &&
+                identities.length === 0;
+
+            if (emailAlreadyRegistered) {
+                setError(
+                    "This email is already registered. Please choose a different email or sign in instead."
+                );
+                setMode("login");
+                return;
+            }
+
             setMessage(
-                "Account created. Check your email and confirm your account. After confirmation, you'll be taken into Real Cost automatically."
+                "Account created. A confirmation email has been sent to your email address. Please confirm your email, then sign in."
             );
 
             setMode("login");
-            setPassword("");
         } catch (err) {
             setError(
                 err instanceof Error
@@ -140,79 +168,29 @@ export default function LoginPage() {
         }
     }
 
-    async function handleForgotPassword() {
-        setError(null);
-        setMessage(null);
-
-        const normalizedEmail =
-            email.trim().toLowerCase();
-
-        if (!normalizedEmail) {
-            setError(
-                "Enter your registered email first."
-            );
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const {
-                error: resetError,
-            } =
-                await supabaseBrowser.auth.resetPasswordForEmail(
-                    normalizedEmail,
-                    {
-                        redirectTo:
-                            `${window.location.origin}/auth/reset-password`,
-                    }
-                );
-
-            if (resetError) {
-                throw new Error(
-                    resetError.message
-                );
-            }
-
-            setMessage(
-                "Password reset email sent. Open the email and use the reset link."
-            );
-        } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : "Could not send the password reset email."
-            );
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    const pageClass =
-        mounted && darkMode
-            ? "auth-dark"
-            : "auth-light";
-
     return (
         <main
-            className={`min-h-screen ${pageClass} bg-slate-50 text-slate-900`}
+            className={`min-h-screen ${mounted && darkMode
+                ? "auth-dark"
+                : "auth-light"
+                } bg-slate-50 text-slate-900`}
         >
             <header className="border-b border-slate-200 bg-white">
-                <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
+                <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
                     <Link
                         href="/"
-                        className="flex min-w-0 items-center gap-3"
+                        className="flex items-center gap-3 rounded-xl"
                     >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
-                            <Receipt size={19} />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+                            <Receipt size={21} />
                         </div>
 
-                        <div className="min-w-0">
-                            <h1 className="text-lg font-bold tracking-tight sm:text-xl">
+                        <div>
+                            <p className="text-xl font-bold tracking-tight">
                                 Real Cost
-                            </h1>
+                            </p>
 
-                            <p className="text-xs text-slate-500 sm:text-sm">
+                            <p className="text-sm text-slate-500">
                                 Understand where your money goes.
                             </p>
                         </div>
@@ -222,10 +200,10 @@ export default function LoginPage() {
                         <button
                             type="button"
                             onClick={toggleTheme}
-                            aria-label="Toggle theme"
-                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            aria-label="Toggle dark mode"
                         >
-                            {mounted && darkMode ? (
+                            {darkMode ? (
                                 <Sun size={17} />
                             ) : (
                                 <Moon size={17} />
@@ -234,36 +212,36 @@ export default function LoginPage() {
 
                         <Link
                             href="/"
-                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
                             <ArrowLeft size={16} />
-                            <span>Home</span>
+                            Home
                         </Link>
                     </div>
                 </div>
             </header>
 
-            <div className="flex min-h-[calc(100vh-73px)] items-center justify-center px-4 py-10 sm:px-6">
-                <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-                    <div className="mb-6">
+            <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-6xl items-center justify-center px-6 py-10">
+                <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+                    <div className="mb-7">
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                             Real Cost Account
                         </p>
 
-                        <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+                        <h1 className="mt-2 text-3xl font-bold tracking-tight">
                             {mode === "login"
                                 ? "Welcome back"
                                 : "Create your account"}
-                        </h2>
+                        </h1>
 
                         <p className="mt-2 text-sm leading-6 text-slate-500">
                             {mode === "login"
                                 ? "Sign in to access your expenses, history and insights."
-                                : "Create an account to keep your spending data tied to your own profile."}
+                                : "Create an account to securely save your spending history."}
                         </p>
                     </div>
 
-                    <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
                         <button
                             type="button"
                             onClick={() => {
@@ -272,7 +250,7 @@ export default function LoginPage() {
                                 setMessage(null);
                             }}
                             className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mode === "login"
-                                ? "bg-slate-950 text-white shadow-sm"
+                                ? "bg-white text-slate-950 shadow-sm"
                                 : "text-slate-500 hover:text-slate-800"
                                 }`}
                         >
@@ -287,7 +265,7 @@ export default function LoginPage() {
                                 setMessage(null);
                             }}
                             className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mode === "signup"
-                                ? "bg-slate-950 text-white shadow-sm"
+                                ? "bg-white text-slate-950 shadow-sm"
                                 : "text-slate-500 hover:text-slate-800"
                                 }`}
                         >
@@ -302,7 +280,7 @@ export default function LoginPage() {
                         <div>
                             <label
                                 htmlFor="email"
-                                className="mb-2 block text-sm font-medium text-slate-800"
+                                className="text-sm font-medium text-slate-700"
                             >
                                 Email
                             </label>
@@ -310,22 +288,21 @@ export default function LoginPage() {
                             <input
                                 id="email"
                                 type="email"
-                                autoComplete="email"
                                 value={email}
                                 onChange={(event) =>
                                     setEmail(event.target.value)
                                 }
                                 placeholder="you@example.com"
-                                disabled={loading}
-                                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                autoComplete="email"
+                                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                             />
                         </div>
 
                         <div>
-                            <div className="mb-2 flex items-center justify-between gap-3">
+                            <div className="flex items-center justify-between">
                                 <label
                                     htmlFor="password"
-                                    className="block text-sm font-medium text-slate-800"
+                                    className="text-sm font-medium text-slate-700"
                                 >
                                     Password
                                 </label>
@@ -335,14 +312,14 @@ export default function LoginPage() {
                                         type="button"
                                         onClick={handleForgotPassword}
                                         disabled={loading}
-                                        className="text-xs font-semibold text-slate-500 underline-offset-4 transition hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="text-xs font-semibold text-slate-500 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         Forgot password?
                                     </button>
                                 )}
                             </div>
 
-                            <div className="relative">
+                            <div className="relative mt-2">
                                 <input
                                     id="password"
                                     type={
@@ -350,41 +327,37 @@ export default function LoginPage() {
                                             ? "text"
                                             : "password"
                                     }
+                                    value={password}
+                                    onChange={(event) =>
+                                        setPassword(event.target.value)
+                                    }
+                                    placeholder="At least 6 characters"
                                     autoComplete={
                                         mode === "login"
                                             ? "current-password"
                                             : "new-password"
                                     }
-                                    value={password}
-                                    onChange={(event) =>
-                                        setPassword(
-                                            event.target.value
-                                        )
-                                    }
-                                    placeholder="At least 6 characters"
-                                    disabled={loading}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                                 />
 
                                 <button
                                     type="button"
                                     onClick={() =>
                                         setShowPassword(
-                                            (current) => !current
+                                            (value) => !value
                                         )
                                     }
-                                    disabled={loading}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                                     aria-label={
                                         showPassword
                                             ? "Hide password"
                                             : "Show password"
                                     }
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 disabled:opacity-50"
                                 >
                                     {showPassword ? (
-                                        <EyeOff size={17} />
+                                        <EyeOff size={18} />
                                     ) : (
-                                        <Eye size={17} />
+                                        <Eye size={18} />
                                     )}
                                 </button>
                             </div>
@@ -397,7 +370,7 @@ export default function LoginPage() {
                         )}
 
                         {message && (
-                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-5 text-emerald-700">
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                                 {message}
                             </div>
                         )}
@@ -405,18 +378,20 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading && (
                                 <Loader2
-                                    size={17}
+                                    size={18}
                                     className="animate-spin"
                                 />
                             )}
 
-                            {mode === "login"
-                                ? "Log in"
-                                : "Create account"}
+                            {loading
+                                ? "Please wait..."
+                                : mode === "login"
+                                    ? "Log in"
+                                    : "Create account"}
                         </button>
                     </form>
 
@@ -425,6 +400,67 @@ export default function LoginPage() {
                     </p>
                 </section>
             </div>
+
+            <style jsx global>{`
+        .auth-dark {
+          background: #020617 !important;
+          color: #f8fafc !important;
+        }
+
+        .auth-dark .bg-white {
+          background-color: #0f172a !important;
+        }
+
+        .auth-dark .bg-slate-50 {
+          background-color: #020617 !important;
+        }
+
+        .auth-dark .bg-slate-100 {
+          background-color: #1e293b !important;
+        }
+
+        .auth-dark .border-slate-200 {
+          border-color: #334155 !important;
+        }
+
+        .auth-dark .text-slate-950,
+        .auth-dark .text-slate-900 {
+          color: #f8fafc !important;
+        }
+
+        .auth-dark .text-slate-800,
+        .auth-dark .text-slate-700 {
+          color: #e2e8f0 !important;
+        }
+
+        .auth-dark .text-slate-600,
+        .auth-dark .text-slate-500 {
+          color: #94a3b8 !important;
+        }
+
+        .auth-dark .text-slate-400 {
+          color: #64748b !important;
+        }
+
+        .auth-dark .bg-slate-950 {
+          background-color: #f8fafc !important;
+          color: #020617 !important;
+        }
+
+        .auth-dark input {
+          background-color: #0f172a !important;
+          color: #f8fafc !important;
+          border-color: #334155 !important;
+        }
+
+        .auth-dark .hover\\:bg-slate-50:hover {
+          background-color: #1e293b !important;
+        }
+
+        .auth-dark .hover\\:bg-slate-800:hover {
+          background-color: #e2e8f0 !important;
+        }
+      `}</style>
         </main>
     );
 }
