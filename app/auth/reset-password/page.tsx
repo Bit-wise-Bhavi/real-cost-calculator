@@ -1,6 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import {
+    FormEvent,
+    useEffect,
+    useState,
+} from "react";
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -11,50 +15,118 @@ import {
     Receipt,
     Sun,
 } from "lucide-react";
+
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useTheme } from "@/components/theme-provider";
 
 export default function ResetPasswordPage() {
-    const [password, setPassword] = useState("");
+    const {
+        darkMode,
+        toggleTheme,
+    } = useTheme();
+
+    const [mounted, setMounted] =
+        useState(false);
+
+    const [ready, setReady] =
+        useState(false);
+
+    const [checking, setChecking] =
+        useState(true);
+
+    const [password, setPassword] =
+        useState("");
+
     const [confirmPassword, setConfirmPassword] =
         useState("");
 
     const [showPassword, setShowPassword] =
         useState(false);
+
     const [showConfirmPassword, setShowConfirmPassword] =
         useState(false);
 
-    const [loading, setLoading] = useState(false);
-    const [checkingSession, setCheckingSession] =
-        useState(true);
+    const [saving, setSaving] =
+        useState(false);
 
-    const [message, setMessage] = useState<string | null>(
-        null
-    );
-    const [error, setError] = useState<string | null>(
-        null
-    );
+    const [success, setSuccess] =
+        useState(false);
 
-    const { darkMode, toggleTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
+    const [error, setError] =
+        useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
+    }, []);
 
-        async function checkSession() {
-            const { data } =
-                await supabaseBrowser.auth.getSession();
+    useEffect(() => {
+        let active = true;
 
-            if (!data.session) {
+        const {
+            data: authListener,
+        } =
+            supabaseBrowser.auth.onAuthStateChange(
+                (event, session) => {
+                    if (!active) {
+                        return;
+                    }
+
+                    if (
+                        event === "PASSWORD_RECOVERY" &&
+                        session
+                    ) {
+                        setReady(true);
+                        setChecking(false);
+                        setError(null);
+                        return;
+                    }
+
+                    if (session) {
+                        setReady(true);
+                        setChecking(false);
+                    }
+                }
+            );
+
+        async function checkRecoverySession() {
+            try {
+                const {
+                    data: { session },
+                } =
+                    await supabaseBrowser.auth.getSession();
+
+                if (!active) {
+                    return;
+                }
+
+                if (session) {
+                    setReady(true);
+                    setChecking(false);
+                    return;
+                }
+
+                setChecking(false);
                 setError(
-                    "This password reset link is invalid or has expired. Please request a new one."
+                    "This password reset link is invalid or has expired. Please request a new reset email."
+                );
+            } catch {
+                if (!active) {
+                    return;
+                }
+
+                setChecking(false);
+                setError(
+                    "Could not verify the password reset session."
                 );
             }
-
-            setCheckingSession(false);
         }
 
-        checkSession();
+        checkRecoverySession();
+
+        return () => {
+            active = false;
+            authListener.subscription.unsubscribe();
+        };
     }, []);
 
     async function handleSubmit(
@@ -63,7 +135,6 @@ export default function ResetPasswordPage() {
         event.preventDefault();
 
         setError(null);
-        setMessage(null);
 
         if (password.length < 6) {
             setError(
@@ -73,30 +144,42 @@ export default function ResetPasswordPage() {
         }
 
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError(
+                "Passwords do not match."
+            );
             return;
         }
 
-        setLoading(true);
+        setSaving(true);
 
         try {
-            const { error: updateError } =
+            const {
+                data: { session },
+            } =
+                await supabaseBrowser.auth.getSession();
+
+            if (!session) {
+                throw new Error(
+                    "Your password reset session is no longer valid. Please request a new reset email."
+                );
+            }
+
+            const {
+                error: updateError,
+            } =
                 await supabaseBrowser.auth.updateUser({
                     password,
                 });
 
             if (updateError) {
-                throw new Error(updateError.message);
+                throw new Error(
+                    updateError.message
+                );
             }
 
-            setMessage(
-                "Password updated successfully. Taking you to Real Cost..."
-            );
+            setSuccess(true);
 
-            setPassword("");
-            setConfirmPassword("");
-
-            setTimeout(() => {
+            window.setTimeout(() => {
                 window.location.href = "/";
             }, 900);
         } catch (err) {
@@ -106,42 +189,46 @@ export default function ResetPasswordPage() {
                     : "Could not update your password."
             );
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     }
 
+    const pageClass =
+        mounted && darkMode
+            ? "auth-dark"
+            : "auth-light";
+
     return (
         <main
-            className={`min-h-screen ${mounted && darkMode ? "auth-dark" : "auth-light"
-                } bg-slate-50 text-slate-900`}
+            className={`min-h-screen ${pageClass} bg-slate-50 text-slate-900`}
         >
             <header className="border-b border-slate-200 bg-white">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+                <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
                     <Link
                         href="/"
-                        className="flex min-w-0 items-center gap-3 rounded-xl"
+                        className="flex min-w-0 items-center gap-3"
                     >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
-                            <Receipt size={21} />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
+                            <Receipt size={19} />
                         </div>
 
                         <div className="min-w-0">
-                            <p className="text-xl font-bold tracking-tight">
+                            <h1 className="text-lg font-bold tracking-tight sm:text-xl">
                                 Real Cost
-                            </p>
+                            </h1>
 
-                            <p className="hidden text-sm text-slate-500 sm:block">
+                            <p className="text-xs text-slate-500 sm:text-sm">
                                 Understand where your money goes.
                             </p>
                         </div>
                     </Link>
 
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <button
                             type="button"
                             onClick={toggleTheme}
-                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                            aria-label="Toggle dark mode"
+                            aria-label="Toggle theme"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
                         >
                             {mounted && darkMode ? (
                                 <Sun size={17} />
@@ -151,244 +238,213 @@ export default function ResetPasswordPage() {
                         </button>
 
                         <Link
-                            href="/login"
-                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            href="/"
+                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
                             <ArrowLeft size={16} />
-                            <span className="hidden sm:inline">
-                                Login
-                            </span>
+                            <span>Home</span>
                         </Link>
                     </div>
                 </div>
             </header>
 
-            <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-10">
-                <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                    <div className="mb-7">
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Account Security
-                        </p>
-
-                        <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-                            Reset your password
-                        </h1>
-
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
-                            Choose a new password for your Real Cost
-                            account.
-                        </p>
-                    </div>
-
-                    {checkingSession ? (
-                        <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+            <div className="flex min-h-[calc(100vh-73px)] items-center justify-center px-4 py-10 sm:px-6">
+                <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+                    {checking ? (
+                        <div className="py-8 text-center">
                             <Loader2
-                                size={18}
-                                className="animate-spin"
+                                size={28}
+                                className="mx-auto animate-spin text-slate-600"
                             />
-                            Checking reset link...
+
+                            <p className="mt-4 text-sm font-medium text-slate-700">
+                                Verifying your reset link...
+                            </p>
+                        </div>
+                    ) : success ? (
+                        <div className="py-8 text-center">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                                ✓
+                            </div>
+
+                            <h2 className="mt-5 text-2xl font-bold">
+                                Password updated
+                            </h2>
+
+                            <p className="mt-2 text-sm leading-6 text-slate-500">
+                                Your password has been changed successfully. Taking you into Real Cost...
+                            </p>
                         </div>
                     ) : (
-                        <form
-                            onSubmit={handleSubmit}
-                            className="space-y-5"
-                        >
-                            <div>
-                                <label
-                                    htmlFor="new-password"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    New password
-                                </label>
+                        <>
+                            <div className="mb-6">
+                                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                                    Real Cost Account
+                                </p>
 
-                                <div className="relative mt-2">
-                                    <input
-                                        id="new-password"
-                                        type={
-                                            showPassword
-                                                ? "text"
-                                                : "password"
-                                        }
-                                        value={password}
-                                        onChange={(event) =>
-                                            setPassword(event.target.value)
-                                        }
-                                        placeholder="At least 6 characters"
-                                        autoComplete="new-password"
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                                    />
+                                <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+                                    Reset your password
+                                </h2>
 
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowPassword(
-                                                (value) => !value
-                                            )
-                                        }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                                        aria-label={
-                                            showPassword
-                                                ? "Hide password"
-                                                : "Show password"
-                                        }
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff size={18} />
-                                        ) : (
-                                            <Eye size={18} />
-                                        )}
-                                    </button>
-                                </div>
+                                <p className="mt-2 text-sm leading-6 text-slate-500">
+                                    Choose a new password for your Real Cost account.
+                                </p>
                             </div>
 
-                            <div>
-                                <label
-                                    htmlFor="confirm-password"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    Confirm new password
-                                </label>
+                            {!ready && error ? (
+                                <>
+                                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
+                                        {error}
+                                    </div>
 
-                                <div className="relative mt-2">
-                                    <input
-                                        id="confirm-password"
-                                        type={
-                                            showConfirmPassword
-                                                ? "text"
-                                                : "password"
-                                        }
-                                        value={confirmPassword}
-                                        onChange={(event) =>
-                                            setConfirmPassword(
-                                                event.target.value
-                                            )
-                                        }
-                                        placeholder="Enter your new password again"
-                                        autoComplete="new-password"
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                                    />
+                                    <Link
+                                        href="/login"
+                                        className="mt-5 flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                    >
+                                        Back to login
+                                    </Link>
+                                </>
+                            ) : (
+                                <form
+                                    onSubmit={handleSubmit}
+                                    className="space-y-5"
+                                >
+                                    <div>
+                                        <label
+                                            htmlFor="new-password"
+                                            className="mb-2 block text-sm font-medium text-slate-800"
+                                        >
+                                            New password
+                                        </label>
+
+                                        <div className="relative">
+                                            <input
+                                                id="new-password"
+                                                type={
+                                                    showPassword
+                                                        ? "text"
+                                                        : "password"
+                                                }
+                                                autoComplete="new-password"
+                                                value={password}
+                                                onChange={(event) =>
+                                                    setPassword(
+                                                        event.target.value
+                                                    )
+                                                }
+                                                placeholder="At least 6 characters"
+                                                disabled={saving}
+                                                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:opacity-60"
+                                            />
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setShowPassword(
+                                                        (current) =>
+                                                            !current
+                                                    )
+                                                }
+                                                disabled={saving}
+                                                aria-label={
+                                                    showPassword
+                                                        ? "Hide password"
+                                                        : "Show password"
+                                                }
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                                            >
+                                                {showPassword ? (
+                                                    <EyeOff size={17} />
+                                                ) : (
+                                                    <Eye size={17} />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="confirm-password"
+                                            className="mb-2 block text-sm font-medium text-slate-800"
+                                        >
+                                            Confirm new password
+                                        </label>
+
+                                        <div className="relative">
+                                            <input
+                                                id="confirm-password"
+                                                type={
+                                                    showConfirmPassword
+                                                        ? "text"
+                                                        : "password"
+                                                }
+                                                autoComplete="new-password"
+                                                value={
+                                                    confirmPassword
+                                                }
+                                                onChange={(event) =>
+                                                    setConfirmPassword(
+                                                        event.target.value
+                                                    )
+                                                }
+                                                placeholder="Enter the password again"
+                                                disabled={saving}
+                                                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:opacity-60"
+                                            />
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setShowConfirmPassword(
+                                                        (current) =>
+                                                            !current
+                                                    )
+                                                }
+                                                disabled={saving}
+                                                aria-label={
+                                                    showConfirmPassword
+                                                        ? "Hide password"
+                                                        : "Show password"
+                                                }
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                                            >
+                                                {showConfirmPassword ? (
+                                                    <EyeOff size={17} />
+                                                ) : (
+                                                    <Eye size={17} />
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {error && (
+                                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
+                                            {error}
+                                        </div>
+                                    )}
 
                                     <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowConfirmPassword(
-                                                (value) => !value
-                                            )
+                                        type="submit"
+                                        disabled={
+                                            saving || !ready
                                         }
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                                        aria-label={
-                                            showConfirmPassword
-                                                ? "Hide password"
-                                                : "Show password"
-                                        }
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        {showConfirmPassword ? (
-                                            <EyeOff size={18} />
-                                        ) : (
-                                            <Eye size={18} />
+                                        {saving && (
+                                            <Loader2
+                                                size={17}
+                                                className="animate-spin"
+                                            />
                                         )}
+
+                                        Update password
                                     </button>
-                                </div>
-                            </div>
-
-                            {error && (
-                                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
-                                    {error}
-                                </div>
+                                </form>
                             )}
-
-                            {message && (
-                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-5 text-emerald-700">
-                                    {message}
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={
-                                    loading ||
-                                    !!error &&
-                                    error.includes("reset link")
-                                }
-                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {loading && (
-                                    <Loader2
-                                        size={18}
-                                        className="animate-spin"
-                                    />
-                                )}
-
-                                {loading
-                                    ? "Updating password..."
-                                    : "Update password"}
-                            </button>
-                        </form>
+                        </>
                     )}
-
-                    <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-                        After updating your password, you'll be
-                        signed in and returned to Real Cost.
-                    </p>
                 </section>
             </div>
-
-            <style jsx global>{`
-        .auth-dark {
-          background: #020617 !important;
-          color: #f8fafc !important;
-        }
-
-        .auth-dark .bg-white {
-          background-color: #0f172a !important;
-        }
-
-        .auth-dark .bg-slate-50 {
-          background-color: #020617 !important;
-        }
-
-        .auth-dark .border-slate-200 {
-          border-color: #334155 !important;
-        }
-
-        .auth-dark .text-slate-950,
-        .auth-dark .text-slate-900 {
-          color: #f8fafc !important;
-        }
-
-        .auth-dark .text-slate-800,
-        .auth-dark .text-slate-700 {
-          color: #e2e8f0 !important;
-        }
-
-        .auth-dark .text-slate-600,
-        .auth-dark .text-slate-500 {
-          color: #94a3b8 !important;
-        }
-
-        .auth-dark .text-slate-400 {
-          color: #64748b !important;
-        }
-
-        .auth-dark .bg-slate-950 {
-          background-color: #f8fafc !important;
-          color: #020617 !important;
-        }
-
-        .auth-dark input {
-          background-color: #0f172a !important;
-          color: #f8fafc !important;
-          border-color: #334155 !important;
-        }
-
-        .auth-dark .hover\\:bg-slate-50:hover {
-          background-color: #1e293b !important;
-        }
-
-        .auth-dark .hover\\:bg-slate-800:hover {
-          background-color: #e2e8f0 !important;
-        }
-      `}</style>
         </main>
     );
 }

@@ -1,6 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import {
+    FormEvent,
+    useEffect,
+    useState,
+} from "react";
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -11,27 +15,47 @@ import {
     Receipt,
     Sun,
 } from "lucide-react";
+
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useTheme } from "@/components/theme-provider";
 
 export default function LoginPage() {
-    const [mode, setMode] = useState<"login" | "signup">("login");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [forgotLoading, setForgotLoading] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [mode, setMode] =
+        useState<"login" | "signup">("login");
 
-    const { darkMode, toggleTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
+    const [email, setEmail] =
+        useState("");
+
+    const [password, setPassword] =
+        useState("");
+
+    const [showPassword, setShowPassword] =
+        useState(false);
+
+    const [loading, setLoading] =
+        useState(false);
+
+    const [message, setMessage] =
+        useState<string | null>(null);
+
+    const [error, setError] =
+        useState<string | null>(null);
+
+    const [mounted, setMounted] =
+        useState(false);
+
+    const {
+        darkMode,
+        toggleTheme,
+    } = useTheme();
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(
+        event: FormEvent<HTMLFormElement>
+    ) {
         event.preventDefault();
 
         setLoading(true);
@@ -39,42 +63,59 @@ export default function LoginPage() {
         setMessage(null);
 
         try {
-            const normalizedEmail = email.trim();
+            const normalizedEmail =
+                email.trim().toLowerCase();
 
             if (!normalizedEmail || !password) {
-                throw new Error("Please enter your email and password.");
+                throw new Error(
+                    "Please enter your email and password."
+                );
             }
 
             if (password.length < 6) {
-                throw new Error("Password must be at least 6 characters.");
+                throw new Error(
+                    "Password must be at least 6 characters."
+                );
             }
 
             if (mode === "login") {
-                const { error: signInError } =
-                    await supabaseBrowser.auth.signInWithPassword({
-                        email: normalizedEmail,
-                        password,
-                    });
+                const {
+                    error: signInError,
+                } =
+                    await supabaseBrowser.auth.signInWithPassword(
+                        {
+                            email: normalizedEmail,
+                            password,
+                        }
+                    );
 
                 if (signInError) {
-                    throw new Error(signInError.message);
+                    throw new Error(
+                        signInError.message
+                    );
                 }
 
                 window.location.href = "/";
                 return;
             }
 
-            const { data, error: signUpError } =
+            const {
+                data,
+                error: signUpError,
+            } =
                 await supabaseBrowser.auth.signUp({
                     email: normalizedEmail,
                     password,
                     options: {
-                        emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
+                        emailRedirectTo:
+                            `${window.location.origin}/auth/callback?next=/`,
                     },
                 });
 
             if (signUpError) {
-                throw new Error(signUpError.message);
+                throw new Error(
+                    signUpError.message
+                );
             }
 
             if (data.session) {
@@ -86,8 +127,8 @@ export default function LoginPage() {
                 "Account created. Check your email and confirm your account. After confirmation, you'll be taken into Real Cost automatically."
             );
 
-            setPassword("");
             setMode("login");
+            setPassword("");
         } catch (err) {
             setError(
                 err instanceof Error
@@ -103,74 +144,86 @@ export default function LoginPage() {
         setError(null);
         setMessage(null);
 
-        const normalizedEmail = email.trim();
+        const normalizedEmail =
+            email.trim().toLowerCase();
 
         if (!normalizedEmail) {
-            setError("Enter your email address first.");
+            setError(
+                "Enter your registered email first."
+            );
             return;
         }
 
-        setForgotLoading(true);
+        setLoading(true);
 
         try {
-            const { error: resetError } =
+            const {
+                error: resetError,
+            } =
                 await supabaseBrowser.auth.resetPasswordForEmail(
                     normalizedEmail,
                     {
-                        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+                        redirectTo:
+                            `${window.location.origin}/auth/reset-password`,
                     }
                 );
 
             if (resetError) {
-                throw new Error(resetError.message);
+                throw new Error(
+                    resetError.message
+                );
             }
 
             setMessage(
-                "Password reset email sent. Check your inbox and follow the link to create a new password."
+                "Password reset email sent. Open the email and use the reset link."
             );
         } catch (err) {
             setError(
                 err instanceof Error
                     ? err.message
-                    : "Could not send password reset email."
+                    : "Could not send the password reset email."
             );
         } finally {
-            setForgotLoading(false);
+            setLoading(false);
         }
     }
 
+    const pageClass =
+        mounted && darkMode
+            ? "auth-dark"
+            : "auth-light";
+
     return (
         <main
-            className={`min-h-screen ${mounted && darkMode ? "auth-dark" : "auth-light"
-                } bg-slate-50 text-slate-900`}
+            className={`min-h-screen ${pageClass} bg-slate-50 text-slate-900`}
         >
             <header className="border-b border-slate-200 bg-white">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+                <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
                     <Link
                         href="/"
-                        className="flex min-w-0 items-center gap-3 rounded-xl"
+                        className="flex min-w-0 items-center gap-3"
                     >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
-                            <Receipt size={21} />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
+                            <Receipt size={19} />
                         </div>
 
                         <div className="min-w-0">
-                            <p className="text-xl font-bold tracking-tight">
+                            <h1 className="text-lg font-bold tracking-tight sm:text-xl">
                                 Real Cost
-                            </p>
+                            </h1>
 
-                            <p className="hidden text-sm text-slate-500 sm:block">
+                            <p className="text-xs text-slate-500 sm:text-sm">
                                 Understand where your money goes.
                             </p>
                         </div>
                     </Link>
 
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <button
                             type="button"
                             onClick={toggleTheme}
-                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                            aria-label="Toggle dark mode"
+                            aria-label="Toggle theme"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
                         >
                             {mounted && darkMode ? (
                                 <Sun size={17} />
@@ -181,36 +234,36 @@ export default function LoginPage() {
 
                         <Link
                             href="/"
-                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
                             <ArrowLeft size={16} />
-                            <span className="hidden sm:inline">Home</span>
+                            <span>Home</span>
                         </Link>
                     </div>
                 </div>
             </header>
 
-            <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-10">
-                <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                    <div className="mb-7">
+            <div className="flex min-h-[calc(100vh-73px)] items-center justify-center px-4 py-10 sm:px-6">
+                <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+                    <div className="mb-6">
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                             Real Cost Account
                         </p>
 
-                        <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+                        <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
                             {mode === "login"
                                 ? "Welcome back"
                                 : "Create your account"}
-                        </h1>
+                        </h2>
 
                         <p className="mt-2 text-sm leading-6 text-slate-500">
                             {mode === "login"
                                 ? "Sign in to access your expenses, history and insights."
-                                : "Create an account to securely save your spending history."}
+                                : "Create an account to keep your spending data tied to your own profile."}
                         </p>
                     </div>
 
-                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
+                    <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
                         <button
                             type="button"
                             onClick={() => {
@@ -219,7 +272,7 @@ export default function LoginPage() {
                                 setMessage(null);
                             }}
                             className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mode === "login"
-                                ? "bg-white text-slate-950 shadow-sm"
+                                ? "bg-slate-950 text-white shadow-sm"
                                 : "text-slate-500 hover:text-slate-800"
                                 }`}
                         >
@@ -234,7 +287,7 @@ export default function LoginPage() {
                                 setMessage(null);
                             }}
                             className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mode === "signup"
-                                ? "bg-white text-slate-950 shadow-sm"
+                                ? "bg-slate-950 text-white shadow-sm"
                                 : "text-slate-500 hover:text-slate-800"
                                 }`}
                         >
@@ -249,7 +302,7 @@ export default function LoginPage() {
                         <div>
                             <label
                                 htmlFor="email"
-                                className="text-sm font-medium text-slate-700"
+                                className="mb-2 block text-sm font-medium text-slate-800"
                             >
                                 Email
                             </label>
@@ -257,21 +310,22 @@ export default function LoginPage() {
                             <input
                                 id="email"
                                 type="email"
+                                autoComplete="email"
                                 value={email}
                                 onChange={(event) =>
                                     setEmail(event.target.value)
                                 }
                                 placeholder="you@example.com"
-                                autoComplete="email"
-                                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                                disabled={loading}
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
                             />
                         </div>
 
                         <div>
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="mb-2 flex items-center justify-between gap-3">
                                 <label
                                     htmlFor="password"
-                                    className="text-sm font-medium text-slate-700"
+                                    className="block text-sm font-medium text-slate-800"
                                 >
                                     Password
                                 </label>
@@ -280,51 +334,57 @@ export default function LoginPage() {
                                     <button
                                         type="button"
                                         onClick={handleForgotPassword}
-                                        disabled={forgotLoading}
-                                        className="text-xs font-semibold text-slate-600 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                                        disabled={loading}
+                                        className="text-xs font-semibold text-slate-500 underline-offset-4 transition hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                        {forgotLoading
-                                            ? "Sending..."
-                                            : "Forgot password?"}
+                                        Forgot password?
                                     </button>
                                 )}
                             </div>
 
-                            <div className="relative mt-2">
+                            <div className="relative">
                                 <input
                                     id="password"
                                     type={
-                                        showPassword ? "text" : "password"
+                                        showPassword
+                                            ? "text"
+                                            : "password"
                                     }
-                                    value={password}
-                                    onChange={(event) =>
-                                        setPassword(event.target.value)
-                                    }
-                                    placeholder="At least 6 characters"
                                     autoComplete={
                                         mode === "login"
                                             ? "current-password"
                                             : "new-password"
                                     }
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-11 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                                    value={password}
+                                    onChange={(event) =>
+                                        setPassword(
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder="At least 6 characters"
+                                    disabled={loading}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-11 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
                                 />
 
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setShowPassword((value) => !value)
+                                        setShowPassword(
+                                            (current) => !current
+                                        )
                                     }
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                                    disabled={loading}
                                     aria-label={
                                         showPassword
                                             ? "Hide password"
                                             : "Show password"
                                     }
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 disabled:opacity-50"
                                 >
                                     {showPassword ? (
-                                        <EyeOff size={18} />
+                                        <EyeOff size={17} />
                                     ) : (
-                                        <Eye size={18} />
+                                        <Eye size={17} />
                                     )}
                                 </button>
                             </div>
@@ -345,90 +405,26 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading && (
                                 <Loader2
-                                    size={18}
+                                    size={17}
                                     className="animate-spin"
                                 />
                             )}
 
-                            {loading
-                                ? "Please wait..."
-                                : mode === "login"
-                                    ? "Log in"
-                                    : "Create account"}
+                            {mode === "login"
+                                ? "Log in"
+                                : "Create account"}
                         </button>
                     </form>
 
                     <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-                        Your account is used to keep your spending data tied
-                        to your own profile.
+                        Your account is used to keep your spending data tied to your own profile.
                     </p>
                 </section>
             </div>
-
-            <style jsx global>{`
-        .auth-dark {
-          background: #020617 !important;
-          color: #f8fafc !important;
-        }
-
-        .auth-dark .bg-white {
-          background-color: #0f172a !important;
-        }
-
-        .auth-dark .bg-slate-50 {
-          background-color: #020617 !important;
-        }
-
-        .auth-dark .bg-slate-100 {
-          background-color: #1e293b !important;
-        }
-
-        .auth-dark .border-slate-200 {
-          border-color: #334155 !important;
-        }
-
-        .auth-dark .text-slate-950,
-        .auth-dark .text-slate-900 {
-          color: #f8fafc !important;
-        }
-
-        .auth-dark .text-slate-800,
-        .auth-dark .text-slate-700 {
-          color: #e2e8f0 !important;
-        }
-
-        .auth-dark .text-slate-600,
-        .auth-dark .text-slate-500 {
-          color: #94a3b8 !important;
-        }
-
-        .auth-dark .text-slate-400 {
-          color: #64748b !important;
-        }
-
-        .auth-dark .bg-slate-950 {
-          background-color: #f8fafc !important;
-          color: #020617 !important;
-        }
-
-        .auth-dark input {
-          background-color: #0f172a !important;
-          color: #f8fafc !important;
-          border-color: #334155 !important;
-        }
-
-        .auth-dark .hover\\:bg-slate-50:hover {
-          background-color: #1e293b !important;
-        }
-
-        .auth-dark .hover\\:bg-slate-800:hover {
-          background-color: #e2e8f0 !important;
-        }
-      `}</style>
         </main>
     );
 }
