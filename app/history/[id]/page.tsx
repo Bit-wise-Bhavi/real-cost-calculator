@@ -479,15 +479,16 @@ export default function ExpenseDetails() {
       setExpense({
         ...expense,
         amount,
-        category:
-          editCategory.trim(),
-        expense_date:
-          editDate,
-        description:
-          editDescription.trim() || null,
+        category: editCategory.trim(),
+        expense_date: editDate,
+        description: editDescription.trim() || null,
       });
 
       setIsEditing(false);
+
+      // Go back to History after a successful edit so the list is
+      // reloaded from Supabase instead of showing the stale amount.
+      router.push("/history");
     } catch (err) {
       setError(
         err instanceof Error
@@ -631,7 +632,7 @@ export default function ExpenseDetails() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-5xl px-6 py-10">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
             <div className="flex items-start gap-3">
               <AlertCircle
@@ -678,7 +679,7 @@ export default function ExpenseDetails() {
       ================================================== */}
 
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
 
           <Link
             href="/history"
@@ -691,7 +692,7 @@ export default function ExpenseDetails() {
             Expense History
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
 
             {/* EDIT — KACCHA BILL ONLY */}
 
@@ -705,7 +706,7 @@ export default function ExpenseDetails() {
                   deleting ||
                   saving
                 }
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4"
               >
                 <PenLine
                   size={16}
@@ -726,7 +727,7 @@ export default function ExpenseDetails() {
                 deleting ||
                 saving
               }
-              className="flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4"
             >
               {deleting ? (
                 <Loader2
@@ -751,7 +752,7 @@ export default function ExpenseDetails() {
           MAIN
       ================================================== */}
 
-      <div className="mx-auto max-w-5xl px-6 py-10">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
 
         {/* ==================================================
             HERO
@@ -1040,7 +1041,7 @@ export default function ExpenseDetails() {
             BASIC INFORMATION
         ================================================== */}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
           <div className="mb-5 flex items-center gap-3">
 
@@ -1139,7 +1140,7 @@ export default function ExpenseDetails() {
         ================================================== */}
 
         {isManual && (
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
             <div className="flex items-start gap-4">
 
@@ -1200,7 +1201,7 @@ export default function ExpenseDetails() {
                       key={
                         item.id
                       }
-                      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
                     >
 
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1287,7 +1288,7 @@ export default function ExpenseDetails() {
 
         {!isManual &&
           billData?.totals && (
-            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
               <h2 className="mb-5 text-lg font-semibold">
                 Bill Totals
@@ -1410,7 +1411,7 @@ export default function ExpenseDetails() {
 
         {!isManual &&
           validationData && (
-            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
               <div className="mb-5">
 

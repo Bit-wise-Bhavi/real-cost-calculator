@@ -169,19 +169,18 @@ export default function ExpenseHistory() {
   // ==================================================
 
   useEffect(() => {
-    async function loadExpenses() {
-      setLoading(true);
+    let cancelled = false;
+
+    async function loadExpenses(showLoader = true) {
+      if (showLoader) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
-        // ============================================
-        // GET CURRENT SESSION
-        // ============================================
-
         const {
           data: { session },
-        } =
-          await supabaseBrowser.auth.getSession();
+        } = await supabaseBrowser.auth.getSession();
 
         if (!session) {
           throw new Error(
@@ -189,67 +188,79 @@ export default function ExpenseHistory() {
           );
         }
 
-        // ============================================
-        // FETCH USER'S EXPENSES
-        // RLS ensures only the user's rows are returned
-        // ============================================
-
         const {
           data,
           error: fetchError,
-        } =
-          await supabaseBrowser
-            .from("expenses")
-            .select(
-              `
-                id,
-                source,
-                amount,
-                currency,
-                category,
-                expense_date,
-                description,
-                invoice_number,
-                vendor_name,
-                purchase_type,
-                created_at
-              `
-            )
-            .order(
-              "expense_date",
-              {
-                ascending: false,
-              }
-            )
-            .order(
-              "created_at",
-              {
-                ascending: false,
-              }
-            );
+        } = await supabaseBrowser
+          .from("expenses")
+          .select(
+            `
+              id,
+              source,
+              amount,
+              currency,
+              category,
+              expense_date,
+              description,
+              invoice_number,
+              vendor_name,
+              purchase_type,
+              created_at
+            `
+          )
+          .order("expense_date", { ascending: false })
+          .order("created_at", { ascending: false });
 
         if (fetchError) {
-          throw new Error(
-            fetchError.message
-          );
+          throw new Error(fetchError.message);
         }
 
-        setExpenses(
-          (data || []) as Expense[]
-        );
-
+        if (!cancelled) {
+          setExpenses((data || []) as Expense[]);
+        }
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load expenses."
-        );
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load expenses."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    function refreshWhenReturningToHistory() {
+      if (document.visibilityState === "visible") {
+        loadExpenses(false);
       }
     }
 
     loadExpenses();
+
+    window.addEventListener(
+      "pageshow",
+      refreshWhenReturningToHistory
+    );
+    document.addEventListener(
+      "visibilitychange",
+      refreshWhenReturningToHistory
+    );
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(
+        "pageshow",
+        refreshWhenReturningToHistory
+      );
+      document.removeEventListener(
+        "visibilitychange",
+        refreshWhenReturningToHistory
+      );
+    };
   }, []);
 
   // ==================================================
@@ -356,7 +367,7 @@ export default function ExpenseHistory() {
 
       <header className="border-b border-slate-200 bg-white">
 
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
 
           <div className="flex items-center gap-3">
 
@@ -399,7 +410,7 @@ export default function ExpenseHistory() {
           MAIN
       ================================================== */}
 
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
 
         {/* ==================================================
             PAGE TITLE

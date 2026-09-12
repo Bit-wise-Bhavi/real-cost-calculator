@@ -7,10 +7,7 @@ export async function PATCH(request: NextRequest) {
 
         if (!authHeader?.startsWith("Bearer ")) {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: "Unauthorized",
-                },
+                { success: false, error: "Unauthorized" },
                 { status: 401 }
             );
         }
@@ -36,10 +33,7 @@ export async function PATCH(request: NextRequest) {
 
         if (userError || !user) {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: "Unauthorized",
-                },
+                { success: false, error: "Unauthorized" },
                 { status: 401 }
             );
         }
@@ -54,12 +48,9 @@ export async function PATCH(request: NextRequest) {
             description,
         } = body;
 
-        if (!expense_id) {
+        if (typeof expense_id !== "string" || expense_id.trim() === "") {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: "Expense ID is required.",
-                },
+                { success: false, error: "Expense ID is required." },
                 { status: 400 }
             );
         }
@@ -68,89 +59,66 @@ export async function PATCH(request: NextRequest) {
 
         if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: "Amount must be greater than 0.",
-                },
+                { success: false, error: "Amount must be greater than 0." },
                 { status: 400 }
             );
         }
 
-        if (!category || typeof category !== "string") {
+        if (typeof category !== "string" || category.trim() === "") {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: "Category is required.",
-                },
+                { success: false, error: "Category is required." },
                 { status: 400 }
             );
         }
 
         if (
-            !expense_date ||
+            typeof expense_date !== "string" ||
             !/^\d{4}-\d{2}-\d{2}$/.test(expense_date)
         ) {
             return NextResponse.json(
-                {
-                    success: false,
-                    error: "A valid expense date is required.",
-                },
+                { success: false, error: "A valid expense date is required." },
                 { status: 400 }
             );
         }
 
-        // Make sure the expense belongs to this user
-        // AND is actually a manual/Kaccha Bill expense.
-        const { data: existingExpense, error: existingError } =
-            await supabase
-                .from("expenses")
-                .select("id, source")
-                .eq("id", expense_id)
-                .eq("user_id", user.id)
-                .single();
-
-        if (existingError || !existingExpense) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: "Expense not found.",
-                },
-                { status: 404 }
-            );
-        }
-
-        if (existingExpense.source !== "manual") {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: "Only Kaccha Bills can be edited.",
-                },
-                { status: 403 }
-            );
-        }
-
-        const { error: updateError } = await supabase
-            .from("expenses")
-            .update({
-                amount: parsedAmount,
-                category: category.trim(),
-                expense_date,
-                description:
-                    typeof description === "string"
+        const { data: updatedBalance, error: updateError } =
+            await supabase.rpc("update_manual_expense", {
+                p_expense_id: expense_id.trim(),
+                p_amount: parsedAmount,
+                p_category: category.trim(),
+                p_expense_date: expense_date,
+                p_description:
+                    typeof description === "string" && description.trim() !== ""
                         ? description.trim()
                         : null,
-            })
-            .eq("id", expense_id)
-            .eq("user_id", user.id)
-            .eq("source", "manual");
+            });
 
         if (updateError) {
             console.error("Manual expense update error:", updateError);
 
+            const message = updateError.message || "Failed to update expense.";
+
+            if (message.includes("Expense not found")) {
+                return NextResponse.json(
+                    { success: false, error: "Expense not found." },
+                    { status: 404 }
+                );
+            }
+
+            if (message.includes("Only Kaccha Bills")) {
+                return NextResponse.json(
+                    { success: false, error: "Only Kaccha Bills can be edited." },
+                    { status: 403 }
+                );
+            }
+
             return NextResponse.json(
                 {
                     success: false,
-                    error: "Failed to update expense.",
+                    error: message.includes("current balance") ||
+                        message.includes("current balance")
+                        ? message
+                        : "Failed to update expense.",
                 },
                 { status: 500 }
             );
@@ -159,6 +127,10 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({
             success: true,
             message: "Kaccha Bill updated successfully.",
+            balance:
+                updatedBalance === null || updatedBalance === undefined
+                    ? null
+                    : Number(updatedBalance),
         });
     } catch (error) {
         console.error("Update manual expense error:", error);
