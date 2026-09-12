@@ -764,6 +764,7 @@ export default function Home() {
             headers: {
               "Content-Type":
                 "application/json",
+              Authorization: `Bearer ${currentSession.access_token}`,
             },
 
             body: JSON.stringify({

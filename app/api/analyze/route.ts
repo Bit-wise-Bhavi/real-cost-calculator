@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 const genAI =
@@ -6,10 +7,144 @@ const genAI =
     process.env.GEMINI_API_KEY!
   );
 
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+
+const rateLimitStore = new Map<
+  string,
+  { count: number; resetAt: number }
+>();
+
+const allowedMimeTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+
+function getSupabaseForRequest(request: Request) {
+  const authorization =
+    request.headers.get("authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const accessToken = authorization.slice(7).trim();
+
+  if (!accessToken) {
+    return null;
+  }
+
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    }
+  );
+}
+
+function isRateLimited(userId: string) {
+  const now = Date.now();
+  const current = rateLimitStore.get(userId);
+
+  if (!current || current.resetAt <= now) {
+    rateLimitStore.set(userId, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    });
+    return false;
+  }
+
+  if (current.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return true;
+  }
+
+  current.count += 1;
+  return false;
+}
+
 export async function POST(
   request: Request
 ) {
   try {
+    // ==================================================
+    // AUTHENTICATION
+    // ==================================================
+
+    const supabase =
+      getSupabaseForRequest(request);
+
+    if (!supabase) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Authentication required.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Authentication required.",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (isRateLimited(user.id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too many analysis requests. Please try again in a minute.",
+          error_code: "RATE_LIMITED",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": "60",
+          },
+        }
+      );
+    }
+
+    // ==================================================
+    // REQUEST SIZE LIMIT
+    // ==================================================
+
+    const contentLength = Number(
+      request.headers.get("content-length") || 0
+    );
+
+    if (
+      contentLength > 0 &&
+      contentLength > MAX_REQUEST_BYTES
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Image request is too large. Please use an image smaller than 8 MB.",
+        },
+        { status: 413 }
+      );
+    }
+
     // ==================================================
     // GET IMAGE
     // ==================================================
@@ -19,7 +154,7 @@ export async function POST(
 
     const { image } = body;
 
-    if (!image) {
+    if (typeof image !== "string" || !image) {
       return NextResponse.json(
         {
           success: false,
@@ -30,33 +165,48 @@ export async function POST(
       );
     }
 
-    const base64Data =
-      image.split(",")[1];
+    const dataUrlMatch =
+      image.match(
+        /^data:(image\/(?:jpeg|png|webp|heic|heif));base64,([A-Za-z0-9+/=]+)$/i
+      );
 
-    if (!base64Data) {
+    if (!dataUrlMatch) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Invalid image format.",
+            "Invalid image format. Supported formats are JPEG, PNG, WebP, HEIC and HEIF.",
         },
         { status: 400 }
       );
     }
 
     const mimeType =
-      image.match(
-        /data:(.*?);base64/
-      )?.[1];
+      dataUrlMatch[1].toLowerCase();
+    const base64Data = dataUrlMatch[2];
 
-    if (!mimeType) {
+    if (!allowedMimeTypes.has(mimeType)) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Could not determine image type.",
+          error: "Unsupported image type.",
         },
-        { status: 400 }
+        { status: 415 }
+      );
+    }
+
+    const estimatedImageBytes =
+      Math.floor(
+        (base64Data.length * 3) / 4
+      );
+
+    if (estimatedImageBytes > MAX_IMAGE_BYTES) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Image is too large. Please use an image smaller than 8 MB.",
+        },
+        { status: 413 }
       );
     }
 
@@ -530,12 +680,10 @@ Do not invent information.
 
         console.log(
           `Gemini temporarily unavailable. ` +
-            `Retrying in ${
-              delay / 1000
-            }s... ` +
-            `Attempt ${
-              attempt + 1
-            }/${MAX_RETRIES}`
+          `Retrying in ${delay / 1000
+          }s... ` +
+          `Attempt ${attempt + 1
+          }/${MAX_RETRIES}`
         );
 
         await new Promise(
@@ -632,19 +780,19 @@ Do not invent information.
           const quantity =
             typeof item.quantity ===
               "number" &&
-            item.quantity > 0
+              item.quantity > 0
               ? item.quantity
               : null;
 
           let unitPrice =
             typeof item.unit_price ===
-            "number"
+              "number"
               ? item.unit_price
               : null;
 
           const lineTotal =
             typeof item.line_total ===
-            "number"
+              "number"
               ? item.line_total
               : null;
 
@@ -654,11 +802,11 @@ Do not invent information.
 
           if (
             unitPrice ===
-              null &&
+            null &&
             quantity !==
-              null &&
+            null &&
             lineTotal !==
-              null
+            null
           ) {
             unitPrice =
               Number(
@@ -704,21 +852,21 @@ Do not invent information.
     const calculatedItemTotal =
       lineTotals.length ===
         bill.items.length &&
-      bill.items.length >
+        bill.items.length >
         0
         ? Number(
-            lineTotals
-              .reduce(
-                (
-                  sum: number,
-                  value: number
-                ) =>
-                  sum +
-                  value,
-                0
-              )
-              .toFixed(2)
-          )
+          lineTotals
+            .reduce(
+              (
+                sum: number,
+                value: number
+              ) =>
+                sum +
+                value,
+              0
+            )
+            .toFixed(2)
+        )
         : null;
 
     // ==================================================
@@ -850,9 +998,9 @@ Do not invent information.
     const reportedTotal =
       typeof bill.totals
         .total_invoice_value ===
-      "number"
+        "number"
         ? bill.totals
-            .total_invoice_value
+          .total_invoice_value
         : null;
 
     // ==================================================
@@ -864,9 +1012,9 @@ Do not invent information.
 
     if (
       calculatedItemTotal !==
-        null &&
+      null &&
       reportedTotal !==
-        null
+      null
     ) {
       difference =
         Number(
@@ -908,13 +1056,13 @@ Do not invent information.
 
       status:
         difference ===
-        null
+          null
           ? "insufficient_data"
           : Math.abs(
-                difference
-              ) < 0.01
-          ? "matched"
-          : "difference_found",
+            difference
+          ) < 0.01
+            ? "matched"
+            : "difference_found",
     };
 
     // ==================================================
@@ -936,9 +1084,7 @@ Do not invent information.
         success: false,
 
         error:
-          error instanceof Error
-            ? error.message
-            : "Failed to analyze bill.",
+          "Unable to analyze the bill right now. Please try again.",
       },
       { status: 500 }
     );
