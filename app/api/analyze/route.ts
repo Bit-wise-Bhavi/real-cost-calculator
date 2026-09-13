@@ -25,28 +25,49 @@ const allowedMimeTypes = new Set([
   "image/heif",
 ]);
 
-function getSupabaseForRequest(request: Request) {
+function getAccessTokenFromRequest(request: Request) {
   const authorization =
     request.headers.get("authorization");
 
-  if (!authorization?.startsWith("Bearer ")) {
+  if (!authorization) {
     return null;
   }
 
-  const accessToken = authorization.slice(7).trim();
+  const match =
+    authorization.match(/^Bearer\\s+(.+)$/i);
 
-  if (!accessToken) {
+  if (!match) {
     return null;
+  }
+
+  const accessToken =
+    match[1].trim();
+
+  return accessToken || null;
+}
+
+function getSupabaseClient() {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      "Supabase environment variables are not configured."
+    );
   }
 
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     }
   );
@@ -80,10 +101,10 @@ export async function POST(
     // AUTHENTICATION
     // ==================================================
 
-    const supabase =
-      getSupabaseForRequest(request);
+    const accessToken =
+      getAccessTokenFromRequest(request);
 
-    if (!supabase) {
+    if (!accessToken) {
       return NextResponse.json(
         {
           success: false,
@@ -93,12 +114,26 @@ export async function POST(
       );
     }
 
+    const supabase =
+      getSupabaseClient();
+
+    // Validate the exact bearer token supplied by the browser.
+    // Passing the token directly to getUser() avoids relying on a
+    // request-scoped global Authorization header being propagated
+    // correctly by the Supabase client.
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(
+      accessToken
+    );
 
     if (authError || !user) {
+      console.error(
+        "ANALYZE AUTH ERROR:",
+        authError?.message || "No authenticated user."
+      );
+
       return NextResponse.json(
         {
           success: false,
@@ -292,6 +327,25 @@ Do not silently correct the invoice.
 
 Do not replace a printed value with a calculated value.
 
+INVOICE DATE ACCURACY:
+- The invoice date must be the date actually printed on the bill,
+  receipt, or invoice.
+- Look specifically for labels such as Date, Invoice Date, Bill Date,
+  Receipt Date, or a dated header/transaction line that belongs to
+  this document.
+- Never use today's date, the upload date, image creation date,
+  phone date, analysis date, or any other current/system date.
+- Never infer a bill date merely because a date is missing.
+- If no printed bill/receipt/invoice date is visible or it cannot be
+  read reliably, return null.
+- If multiple dates are visible, choose the date belonging to the
+  invoice/receipt itself, not a payment date, due date, delivery date,
+  warranty date, or unrelated date.
+- Normalize the identified printed date to YYYY-MM-DD only after
+  identifying the actual printed date.
+- A date equal to today's date is valid only when that same date is
+  visibly printed on the bill.
+
 PRODUCT NAME ACCURACY:
 - Transcribe each product/service name as it is printed on the bill.
 - Preserve the complete printed wording, including words such as "SHAKE",
@@ -303,21 +357,6 @@ PRODUCT NAME ACCURACY:
   to resolve OCR ambiguity only when the image supports that reading.
 - If the exact product name cannot be reliably read, return the best
   directly visible text rather than inventing a different product name.
-
-INVOICE DATE ACCURACY:
-- The invoice.invoice_date field MUST be the date actually printed on the bill/receipt.
-- Look specifically for labels such as Date, Invoice Date, Bill Date, Receipt Date,
-  or the dated header/transaction line belonging to this document.
-- NEVER use today's date, the upload date, the image creation date, the phone date,
-  the analysis date, or any other system/current date.
-- NEVER infer a bill date merely because a date is missing.
-- If no printed bill/receipt/invoice date is visible or it cannot be read reliably,
-  return invoice_date: null.
-- If multiple dates are visible, choose the date that belongs to the invoice/receipt
-  itself, not a payment date, due date, delivery date, warranty date, or unrelated date.
-- Normalize only the format to YYYY-MM-DD after identifying the actual printed date.
-- A date that happens to equal today's date is valid ONLY when that same date is visibly
-  printed on the bill.
 
 ==================================================
 STEP 3 — PURCHASE TYPE
@@ -963,111 +1002,104 @@ Do not invent information.
       return printedAmount;
     }
 
-    const rawCGST = bill.items
-      .map((item: any) =>
-        calculateTaxComponent(
-          item,
-          "cgst_rate",
-          "cgst_amount"
-        )
-      )
-      .filter(
-        (value: any) =>
-          typeof value === "number" &&
-          Number.isFinite(value)
-      )
-      .reduce(
-        (sum: number, value: number) =>
-          sum + value,
-        0
-      );
-
-    const rawSGST = bill.items
-      .map((item: any) =>
-        calculateTaxComponent(
-          item,
-          "sgst_rate",
-          "sgst_amount"
-        )
-      )
-      .filter(
-        (value: any) =>
-          typeof value === "number" &&
-          Number.isFinite(value)
-      )
-      .reduce(
-        (sum: number, value: number) =>
-          sum + value,
-        0
-      );
-
-    const rawIGST = bill.items
-      .map((item: any) =>
-        calculateTaxComponent(
-          item,
-          "igst_rate",
-          "igst_amount"
-        )
-      )
-      .filter(
-        (value: any) =>
-          typeof value === "number" &&
-          Number.isFinite(value)
-      )
-      .reduce(
-        (sum: number, value: number) =>
-          sum + value,
-        0
-      );
-
-    const rawCess = bill.items
-      .map((item: any) =>
-        calculateTaxComponent(
-          item,
-          "cess_rate",
-          "cess_amount"
-        )
-      )
-      .filter(
-        (value: any) =>
-          typeof value === "number" &&
-          Number.isFinite(value)
-      )
-      .reduce(
-        (sum: number, value: number) =>
-          sum + value,
-        0
-      );
-
-    // Display each tax component rounded to two decimals,
-    // but reconcile using the combined raw tax before rounding.
-    // This avoids false one-paise differences caused by rounding
-    // CGST/SGST independently first.
     const calculatedCGST = Number(
-      rawCGST.toFixed(2)
+      bill.items
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "cgst_rate",
+            "cgst_amount"
+          )
+        )
+        .filter(
+          (value: any) =>
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
     );
 
     const calculatedSGST = Number(
-      rawSGST.toFixed(2)
+      bill.items
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "sgst_rate",
+            "sgst_amount"
+          )
+        )
+        .filter(
+          (value: any) =>
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
     );
 
     const calculatedIGST = Number(
-      rawIGST.toFixed(2)
+      bill.items
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "igst_rate",
+            "igst_amount"
+          )
+        )
+        .filter(
+          (value: any) =>
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
     );
 
     const calculatedCess = Number(
-      rawCess.toFixed(2)
+      bill.items
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "cess_rate",
+            "cess_amount"
+          )
+        )
+        .filter(
+          (value: any) =>
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
     );
 
     const calculatedTax = Number(
       (
-        rawCGST +
-        rawSGST +
-        rawIGST +
-        rawCess
+        calculatedCGST +
+        calculatedSGST +
+        calculatedIGST +
+        calculatedCess
       ).toFixed(2)
     );
 
+    // ==================================================
     // PRINTED TOTAL
     // ==================================================
 

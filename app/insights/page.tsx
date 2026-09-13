@@ -356,7 +356,7 @@ export default function Insights() {
 
         date.setDate(
           generalStart.getDate() +
-          i
+            i
         );
 
         const key =
@@ -428,7 +428,7 @@ export default function Insights() {
         map.set(
           category,
           (map.get(category) || 0) +
-          getAmount(expense)
+            getAmount(expense)
         );
       }
 
@@ -482,9 +482,9 @@ export default function Insights() {
 
           return (
             date >=
-            currentMonthStart &&
+              currentMonthStart &&
             date <=
-            currentMonthEnd
+              currentMonthEnd
           );
         }
       );
@@ -541,9 +541,9 @@ export default function Insights() {
 
             return (
               date >=
-              previousMonthStart &&
+                previousMonthStart &&
               date <=
-              previousMonthEnd
+                previousMonthEnd
             );
           }
         )
@@ -565,11 +565,11 @@ export default function Insights() {
   const monthPercentageChange =
     previousMonthSpent > 0
       ? (
-        Math.abs(
-          monthDifference
-        ) /
-        previousMonthSpent
-      ) * 100
+          Math.abs(
+            monthDifference
+          ) /
+          previousMonthSpent
+        ) * 100
       : null;
 
   // ==================================================
@@ -592,7 +592,7 @@ export default function Insights() {
         map.set(
           category,
           (map.get(category) || 0) +
-          getAmount(expense)
+            getAmount(expense)
         );
       }
 
@@ -711,11 +711,11 @@ export default function Insights() {
   const averageExpense =
     expenses.length > 0
       ? expenses.reduce(
-        (sum, expense) =>
-          sum +
-          getAmount(expense),
-        0
-      ) / expenses.length
+          (sum, expense) =>
+            sum +
+            getAmount(expense),
+          0
+        ) / expenses.length
       : 0;
 
   // ==================================================
@@ -896,11 +896,11 @@ export default function Insights() {
       const cells: (
         | null
         | {
-          day: number;
-          key: string;
-          amount: number;
-          expenses: Expense[];
-        }
+            day: number;
+            key: string;
+            amount: number;
+            expenses: Expense[];
+          }
       )[] = [];
 
       for (
@@ -973,9 +973,9 @@ export default function Insights() {
 
             return (
               date.getFullYear() ===
-              calendarYear &&
+                calendarYear &&
               date.getMonth() ===
-              calendarMonth
+                calendarMonth
             );
           }
         )
@@ -1046,7 +1046,7 @@ export default function Insights() {
   }
 
   return (
-    <main className={`min-h-screen ${darkMode ? "bg-slate-950" : "bg-slate-50"} text-slate-900`}>
+    <main className={`insights-page ${darkMode ? "insights-dark" : "insights-light"} min-h-screen text-slate-900`}>
 
       {/* ==================================================
           HEADER
@@ -1245,20 +1245,22 @@ export default function Insights() {
               onClick={() =>
                 setView("general")
               }
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${view === "general"
-                ? "bg-slate-950 text-white"
-                : "text-slate-600 hover:bg-slate-50"
-                }`}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                view === "general"
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
             >
               <span className="block">
                 General
               </span>
 
               <span
-                className={`mt-0.5 block text-xs font-normal ${view === "general"
-                  ? "text-slate-400"
-                  : "text-slate-400"
-                  }`}
+                className={`mt-0.5 block text-xs font-normal ${
+                  view === "general"
+                    ? "text-slate-400"
+                    : "text-slate-400"
+                }`}
               >
                 Last 7 Days
               </span>
@@ -1268,20 +1270,22 @@ export default function Insights() {
               onClick={() =>
                 setView("month")
               }
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${view === "month"
-                ? "bg-slate-950 text-white"
-                : "text-slate-600 hover:bg-slate-50"
-                }`}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                view === "month"
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
             >
               <span className="block">
                 Month
               </span>
 
               <span
-                className={`mt-0.5 block text-xs font-normal ${view === "month"
-                  ? "text-slate-400"
-                  : "text-slate-400"
-                  }`}
+                className={`mt-0.5 block text-xs font-normal ${
+                  view === "month"
+                    ? "text-slate-400"
+                    : "text-slate-400"
+                }`}
               >
                 Monthly View
               </span>
@@ -1291,20 +1295,22 @@ export default function Insights() {
               onClick={() =>
                 setView("calendar")
               }
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${view === "calendar"
-                ? "bg-slate-950 text-white"
-                : "text-slate-600 hover:bg-slate-50"
-                }`}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                view === "calendar"
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
             >
               <span className="block">
                 Calendar
               </span>
 
               <span
-                className={`mt-0.5 block text-xs font-normal ${view === "calendar"
-                  ? "text-slate-400"
-                  : "text-slate-400"
-                  }`}
+                className={`mt-0.5 block text-xs font-normal ${
+                  view === "calendar"
+                    ? "text-slate-400"
+                    : "text-slate-400"
+                }`}
               >
                 Day by Day
               </span>
@@ -1392,11 +1398,12 @@ export default function Insights() {
                     generalSpent,
                     currency
                   )}
-                  subtext={`${generalExpenses.length} recorded expense${generalExpenses.length ===
+                  subtext={`${generalExpenses.length} recorded expense${
+                    generalExpenses.length ===
                     1
-                    ? ""
-                    : "s"
-                    }`}
+                      ? ""
+                      : "s"
+                  }`}
                   icon={
                     <Wallet size={19} />
                   }
@@ -1408,7 +1415,7 @@ export default function Insights() {
                     generalExpenses.length >
                       0
                       ? generalSpent /
-                      generalExpenses.length
+                          generalExpenses.length
                       : 0,
                     currency
                   )}
@@ -1428,9 +1435,9 @@ export default function Insights() {
                   subtext={
                     generalTopCategory
                       ? formatMoney(
-                        generalTopCategory.amount,
-                        currency
-                      )
+                          generalTopCategory.amount,
+                          currency
+                        )
                       : "No data yet"
                   }
                   icon={
@@ -1444,15 +1451,15 @@ export default function Insights() {
                   label="Largest Expense"
                   value={
                     generalExpenses.length >
-                      0
+                    0
                       ? formatMoney(
-                        Math.max(
-                          ...generalExpenses.map(
-                            getAmount
-                          )
-                        ),
-                        currency
-                      )
+                          Math.max(
+                            ...generalExpenses.map(
+                              getAmount
+                            )
+                          ),
+                          currency
+                        )
                       : "₹0"
                   }
                   subtext="In the last 7 days"
@@ -1489,10 +1496,10 @@ export default function Insights() {
                       const height =
                         day.amount > 0
                           ? (
-                            day.amount /
-                            maxGeneralDaily
-                          ) *
-                          100
+                              day.amount /
+                              maxGeneralDaily
+                            ) *
+                            100
                           : 0;
 
                       return (
@@ -1505,13 +1512,13 @@ export default function Insights() {
 
                             {day.amount >
                               0 && (
-                                <p className="text-[11px] font-semibold text-slate-600">
-                                  {formatMoney(
-                                    day.amount,
-                                    currency
-                                  )}
-                                </p>
-                              )}
+                              <p className="text-[11px] font-semibold text-slate-600">
+                                {formatMoney(
+                                  day.amount,
+                                  currency
+                                )}
+                              </p>
+                            )}
 
                           </div>
 
@@ -1522,11 +1529,11 @@ export default function Insights() {
                               style={{
                                 height:
                                   day.amount >
-                                    0
+                                  0
                                     ? `${Math.max(
-                                      height,
-                                      5
-                                    )}%`
+                                        height,
+                                        5
+                                      )}%`
                                     : "3px",
                               }}
                             />
@@ -1567,7 +1574,7 @@ export default function Insights() {
                   </div>
 
                   {generalCategories.length ===
-                    0 ? (
+                  0 ? (
 
                     <EmptyMessage
                       text="No spending recorded in the last 7 days."
@@ -1584,12 +1591,12 @@ export default function Insights() {
 
                           const percentage =
                             generalSpent >
-                              0
+                            0
                               ? (
-                                category.amount /
-                                generalSpent
-                              ) *
-                              100
+                                  category.amount /
+                                  generalSpent
+                                ) *
+                                100
                               : 0;
 
                           return (
@@ -1677,7 +1684,7 @@ export default function Insights() {
                   </div>
 
                   {generalExpenses.length ===
-                    0 ? (
+                  0 ? (
 
                     <EmptyMessage
                       text="No recent expenses."
@@ -1835,11 +1842,12 @@ export default function Insights() {
                     monthSpent,
                     currency
                   )}
-                  subtext={`${monthExpenses.length} expense${monthExpenses.length ===
+                  subtext={`${monthExpenses.length} expense${
+                    monthExpenses.length ===
                     1
-                    ? ""
-                    : "s"
-                    }`}
+                      ? ""
+                      : "s"
+                  }`}
                   icon={
                     <Wallet size={19} />
                   }
@@ -1869,9 +1877,9 @@ export default function Insights() {
                   subtext={
                     monthTopCategory
                       ? formatMoney(
-                        monthTopCategory.amount,
-                        currency
-                      )
+                          monthTopCategory.amount,
+                          currency
+                        )
                       : "No data yet"
                   }
                   icon={
@@ -1913,7 +1921,7 @@ export default function Insights() {
                   </div>
 
                   {previousMonthSpent ===
-                    0 ? (
+                  0 ? (
 
                     <div className="rounded-xl bg-slate-50 px-5 py-4 text-sm text-slate-500">
                       No previous-month spending recorded.
@@ -1957,27 +1965,27 @@ export default function Insights() {
 
                       {monthDifference !==
                         0 && (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
 
-                            {monthDifference >
-                              0 ? (
-                              <TrendingUp
-                                size={
-                                  18
-                                }
-                                className="text-slate-700"
-                              />
-                            ) : (
-                              <TrendingDown
-                                size={
-                                  18
-                                }
-                                className="text-emerald-600"
-                              />
-                            )}
+                          {monthDifference >
+                          0 ? (
+                            <TrendingUp
+                              size={
+                                18
+                              }
+                              className="text-slate-700"
+                            />
+                          ) : (
+                            <TrendingDown
+                              size={
+                                18
+                              }
+                              className="text-emerald-600"
+                            />
+                          )}
 
-                          </div>
-                        )}
+                        </div>
+                      )}
 
                     </div>
 
@@ -1988,7 +1996,7 @@ export default function Insights() {
                 {previousMonthSpent >
                   0 &&
                   monthPercentageChange !==
-                  null && (
+                    null && (
                     <div className="mt-6 rounded-xl bg-slate-50 p-5">
 
                       <p className="text-sm text-slate-600">
@@ -2003,12 +2011,12 @@ export default function Insights() {
                         </span>{" "}
 
                         {monthDifference >
-                          0
+                        0
                           ? "higher"
                           : monthDifference <
                             0
-                            ? "lower"
-                            : "the same as"}{" "}
+                          ? "lower"
+                          : "the same as"}{" "}
 
                         last month.
 
@@ -2036,7 +2044,7 @@ export default function Insights() {
                 </div>
 
                 {monthCategories.length ===
-                  0 ? (
+                0 ? (
 
                   <EmptyMessage
                     text="No expenses recorded this month."
@@ -2053,12 +2061,12 @@ export default function Insights() {
 
                         const percentage =
                           monthSpent >
-                            0
+                          0
                             ? (
-                              category.amount /
-                              monthSpent
-                            ) *
-                            100
+                                category.amount /
+                                monthSpent
+                              ) *
+                              100
                             : 0;
 
                         return (
@@ -2135,7 +2143,7 @@ export default function Insights() {
                 </div>
 
                 {monthExpenses.length ===
-                  0 ? (
+                0 ? (
 
                   <EmptyMessage
                     text="No expenses recorded this month."
@@ -2312,7 +2320,7 @@ export default function Insights() {
 
                 {/* CALENDAR */}
 
-                <div className="grid min-w-0 grid-cols-7 gap-1 sm:gap-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">
 
                   {calendarCells.map(
                     (
@@ -2357,31 +2365,34 @@ export default function Insights() {
                               cell.key
                             )
                           }
-                          className={`min-w-0 min-h-[70px] overflow-hidden rounded-xl border p-1.5 text-left transition sm:min-h-[100px] sm:p-2 ${isSelected
-                            ? "border-slate-950 bg-slate-950 text-white"
-                            : "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50"
-                            }`}
+                          className={`min-h-[70px] rounded-xl border p-2 text-left transition sm:min-h-[100px] ${
+                            isSelected
+                              ? "border-slate-950 bg-slate-950 text-white"
+                              : "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50"
+                          }`}
                         >
 
-                          <div className="flex min-w-0 items-start justify-between gap-1">
+                          <div className="flex items-start justify-between">
 
                             <span
-                              className={`min-w-0 text-xs font-semibold ${isSelected
-                                ? "text-white"
-                                : isToday
+                              className={`text-xs font-semibold ${
+                                isSelected
+                                  ? "text-white"
+                                  : isToday
                                   ? "text-slate-950"
                                   : "text-slate-500"
-                                }`}
+                              }`}
                             >
                               {cell.day}
                             </span>
 
                             {isToday && (
                               <span
-                                className={`shrink-0 rounded-full px-1 py-0.5 text-[8px] font-bold ${isSelected
-                                  ? "bg-white/10 text-white"
-                                  : "bg-slate-100 text-slate-600"
-                                  }`}
+                                className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                                  isSelected
+                                    ? "bg-white/10 text-white"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}
                               >
                                 TODAY
                               </span>
@@ -2391,41 +2402,42 @@ export default function Insights() {
 
                           {cell.amount >
                             0 && (
-                              <div className="mt-3 min-w-0 sm:mt-4">
+                            <div className="mt-4">
 
-                                <p
-                                  title={formatMoney(cell.amount, currency)}
-                                  className={`min-w-0 truncate text-[10px] font-bold tracking-tight sm:text-sm ${isSelected
+                              <p
+                                className={`text-xs font-bold sm:text-sm ${
+                                  isSelected
                                     ? "text-white"
                                     : "text-slate-900"
-                                    }`}
-                                >
-                                  {formatMoney(
-                                    cell.amount,
-                                    currency
-                                  )}
-                                </p>
+                                }`}
+                              >
+                                {formatMoney(
+                                  cell.amount,
+                                  currency
+                                )}
+                              </p>
 
-                                <p
-                                  className={`mt-1 truncate text-[9px] ${isSelected
+                              <p
+                                className={`mt-1 text-[10px] ${
+                                  isSelected
                                     ? "text-slate-400"
                                     : "text-slate-400"
-                                    }`}
-                                >
-                                  {
-                                    cell.expenses
-                                      .length
-                                  }{" "}
-                                  expense
-                                  {cell.expenses
-                                    .length ===
-                                    1
-                                    ? ""
-                                    : "s"}
-                                </p>
+                                }`}
+                              >
+                                {
+                                  cell.expenses
+                                    .length
+                                }{" "}
+                                expense
+                                {cell.expenses
+                                  .length ===
+                                1
+                                  ? ""
+                                  : "s"}
+                              </p>
 
-                              </div>
-                            )}
+                            </div>
+                          )}
 
                         </button>
                       );
@@ -2477,7 +2489,7 @@ export default function Insights() {
                   </div>
 
                   {selectedDayExpenses.length ===
-                    0 ? (
+                  0 ? (
 
                     <div className="rounded-xl bg-slate-50 p-6 text-center">
 
@@ -2540,6 +2552,124 @@ export default function Insights() {
           )}
 
       </div>
+
+
+      <style jsx global>{`
+        /* ==================================================
+           INSIGHTS DARK MODE
+           Keep the existing layout/data logic unchanged.
+           This only fixes contrast for Tailwind slate utilities
+           that were staying dark on the dark navy surface.
+        ================================================== */
+
+        .insights-dark {
+          background: #020617 !important;
+          color: #f8fafc !important;
+        }
+
+        .insights-dark .bg-white {
+          background-color: #0f172a !important;
+        }
+
+        .insights-dark .bg-slate-50 {
+          background-color: #111827 !important;
+        }
+
+        .insights-dark .bg-slate-100 {
+          background-color: #1e293b !important;
+        }
+
+        .insights-dark .bg-slate-200 {
+          background-color: #334155 !important;
+        }
+
+        .insights-dark .border-slate-100,
+        .insights-dark .border-slate-200,
+        .insights-dark .border-slate-300 {
+          border-color: #334155 !important;
+        }
+
+        .insights-dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+          border-color: #334155 !important;
+        }
+
+        .insights-dark .text-slate-950,
+        .insights-dark .text-slate-900 {
+          color: #f8fafc !important;
+        }
+
+        .insights-dark .text-slate-800,
+        .insights-dark .text-slate-700 {
+          color: #e2e8f0 !important;
+        }
+
+        .insights-dark .text-slate-600 {
+          color: #cbd5e1 !important;
+        }
+
+        .insights-dark .text-slate-500 {
+          color: #94a3b8 !important;
+        }
+
+        .insights-dark .text-slate-400 {
+          color: #64748b !important;
+        }
+
+        .insights-dark .text-slate-300 {
+          color: #475569 !important;
+        }
+
+        .insights-dark .bg-slate-950 {
+          background-color: #f8fafc !important;
+          color: #020617 !important;
+        }
+
+        .insights-dark .bg-slate-800 {
+          background-color: #cbd5e1 !important;
+          color: #020617 !important;
+        }
+
+        .insights-dark .hover\\:bg-slate-50:hover {
+          background-color: #1e293b !important;
+        }
+
+        .insights-dark .hover\\:bg-slate-100:hover {
+          background-color: #334155 !important;
+        }
+
+        .insights-dark .hover\\:bg-slate-800:hover {
+          background-color: #e2e8f0 !important;
+        }
+
+        .insights-dark .hover\\:text-slate-900:hover {
+          color: #f8fafc !important;
+        }
+
+        .insights-dark input,
+        .insights-dark select,
+        .insights-dark textarea {
+          background-color: #0f172a !important;
+          color: #f8fafc !important;
+          border-color: #334155 !important;
+        }
+
+        .insights-dark input::placeholder,
+        .insights-dark textarea::placeholder {
+          color: #64748b !important;
+        }
+
+        .insights-dark .focus\\:border-slate-400:focus {
+          border-color: #94a3b8 !important;
+        }
+
+        .insights-dark .focus\\:ring-slate-100:focus {
+          --tw-ring-color: rgb(51 65 85 / 0.6) !important;
+        }
+
+        .insights-dark .shadow-sm {
+          --tw-shadow-color: rgb(0 0 0 / 0.25);
+        }
+      `}</style>
 
     </main>
   );
@@ -2612,7 +2742,7 @@ function ExpenseRow({
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
 
           {expense.source ===
-            "manual" ? (
+          "manual" ? (
             <PenLine
               size={16}
               className="text-slate-600"
@@ -2645,7 +2775,7 @@ function ExpenseRow({
 
             <span className="text-xs text-slate-400">
               {expense.source ===
-                "manual"
+              "manual"
                 ? "Kaccha Bill"
                 : "Bill"}
             </span>
@@ -2674,7 +2804,7 @@ function ExpenseRow({
         {formatMoney(
           getAmount(expense),
           expense.currency ||
-          currency
+            currency
         )}
       </p>
 
@@ -2701,3 +2831,4 @@ function EmptyMessage({
     </div>
   );
 }
+
