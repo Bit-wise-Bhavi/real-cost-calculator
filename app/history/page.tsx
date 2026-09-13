@@ -27,6 +27,7 @@ type Expense = {
   invoice_number: string | null;
   vendor_name: string | null;
   purchase_type: string | null;
+  bill_data: any;
   created_at: string | null;
 };
 
@@ -97,6 +98,20 @@ function formatDate(
       year: "numeric",
     }
   ).format(date);
+}
+
+function getDisplayDate(expense: Expense) {
+  if (
+    expense.source === "bill" &&
+    typeof expense.bill_data?.invoice?.invoice_date === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      expense.bill_data.invoice.invoice_date
+    )
+  ) {
+    return expense.bill_data.invoice.invoice_date;
+  }
+
+  return expense.expense_date;
 }
 
 function getSourceLabel(
@@ -205,6 +220,7 @@ export default function ExpenseHistory() {
               invoice_number,
               vendor_name,
               purchase_type,
+              bill_data,
               created_at
             `
           )
@@ -216,7 +232,32 @@ export default function ExpenseHistory() {
         }
 
         if (!cancelled) {
-          setExpenses((data || []) as Expense[]);
+          const loadedExpenses =
+            (data || []) as Expense[];
+
+          // Scanned bills use the printed invoice date stored
+          // in bill_data. Kaccha Bills keep expense_date.
+          loadedExpenses.sort((a, b) => {
+            const dateA =
+              getDisplayDate(a) || "";
+            const dateB =
+              getDisplayDate(b) || "";
+
+            if (dateA === dateB) {
+              return (
+                new Date(
+                  b.created_at || 0
+                ).getTime() -
+                new Date(
+                  a.created_at || 0
+                ).getTime()
+              );
+            }
+
+            return dateB.localeCompare(dateA);
+          });
+
+          setExpenses(loadedExpenses);
         }
       } catch (err) {
         if (!cancelled) {
@@ -861,7 +902,7 @@ export default function ExpenseHistory() {
                             />
 
                             {formatDate(
-                              expense.expense_date
+                              getDisplayDate(expense)
                             )}
 
                           </div>

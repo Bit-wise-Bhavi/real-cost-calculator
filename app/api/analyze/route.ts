@@ -304,6 +304,21 @@ PRODUCT NAME ACCURACY:
 - If the exact product name cannot be reliably read, return the best
   directly visible text rather than inventing a different product name.
 
+INVOICE DATE ACCURACY:
+- The invoice.invoice_date field MUST be the date actually printed on the bill/receipt.
+- Look specifically for labels such as Date, Invoice Date, Bill Date, Receipt Date,
+  or the dated header/transaction line belonging to this document.
+- NEVER use today's date, the upload date, the image creation date, the phone date,
+  the analysis date, or any other system/current date.
+- NEVER infer a bill date merely because a date is missing.
+- If no printed bill/receipt/invoice date is visible or it cannot be read reliably,
+  return invoice_date: null.
+- If multiple dates are visible, choose the date that belongs to the invoice/receipt
+  itself, not a payment date, due date, delivery date, warranty date, or unrelated date.
+- Normalize only the format to YYYY-MM-DD after identifying the actual printed date.
+- A date that happens to equal today's date is valid ONLY when that same date is visibly
+  printed on the bill.
+
 ==================================================
 STEP 3 — PURCHASE TYPE
 ==================================================
@@ -948,104 +963,111 @@ Do not invent information.
       return printedAmount;
     }
 
+    const rawCGST = bill.items
+      .map((item: any) =>
+        calculateTaxComponent(
+          item,
+          "cgst_rate",
+          "cgst_amount"
+        )
+      )
+      .filter(
+        (value: any) =>
+          typeof value === "number" &&
+          Number.isFinite(value)
+      )
+      .reduce(
+        (sum: number, value: number) =>
+          sum + value,
+        0
+      );
+
+    const rawSGST = bill.items
+      .map((item: any) =>
+        calculateTaxComponent(
+          item,
+          "sgst_rate",
+          "sgst_amount"
+        )
+      )
+      .filter(
+        (value: any) =>
+          typeof value === "number" &&
+          Number.isFinite(value)
+      )
+      .reduce(
+        (sum: number, value: number) =>
+          sum + value,
+        0
+      );
+
+    const rawIGST = bill.items
+      .map((item: any) =>
+        calculateTaxComponent(
+          item,
+          "igst_rate",
+          "igst_amount"
+        )
+      )
+      .filter(
+        (value: any) =>
+          typeof value === "number" &&
+          Number.isFinite(value)
+      )
+      .reduce(
+        (sum: number, value: number) =>
+          sum + value,
+        0
+      );
+
+    const rawCess = bill.items
+      .map((item: any) =>
+        calculateTaxComponent(
+          item,
+          "cess_rate",
+          "cess_amount"
+        )
+      )
+      .filter(
+        (value: any) =>
+          typeof value === "number" &&
+          Number.isFinite(value)
+      )
+      .reduce(
+        (sum: number, value: number) =>
+          sum + value,
+        0
+      );
+
+    // Display each tax component rounded to two decimals,
+    // but reconcile using the combined raw tax before rounding.
+    // This avoids false one-paise differences caused by rounding
+    // CGST/SGST independently first.
     const calculatedCGST = Number(
-      bill.items
-        .map((item: any) =>
-          calculateTaxComponent(
-            item,
-            "cgst_rate",
-            "cgst_amount"
-          )
-        )
-        .filter(
-          (value: any) =>
-            typeof value === "number" &&
-            Number.isFinite(value)
-        )
-        .reduce(
-          (sum: number, value: number) =>
-            sum + value,
-          0
-        )
-        .toFixed(2)
+      rawCGST.toFixed(2)
     );
 
     const calculatedSGST = Number(
-      bill.items
-        .map((item: any) =>
-          calculateTaxComponent(
-            item,
-            "sgst_rate",
-            "sgst_amount"
-          )
-        )
-        .filter(
-          (value: any) =>
-            typeof value === "number" &&
-            Number.isFinite(value)
-        )
-        .reduce(
-          (sum: number, value: number) =>
-            sum + value,
-          0
-        )
-        .toFixed(2)
+      rawSGST.toFixed(2)
     );
 
     const calculatedIGST = Number(
-      bill.items
-        .map((item: any) =>
-          calculateTaxComponent(
-            item,
-            "igst_rate",
-            "igst_amount"
-          )
-        )
-        .filter(
-          (value: any) =>
-            typeof value === "number" &&
-            Number.isFinite(value)
-        )
-        .reduce(
-          (sum: number, value: number) =>
-            sum + value,
-          0
-        )
-        .toFixed(2)
+      rawIGST.toFixed(2)
     );
 
     const calculatedCess = Number(
-      bill.items
-        .map((item: any) =>
-          calculateTaxComponent(
-            item,
-            "cess_rate",
-            "cess_amount"
-          )
-        )
-        .filter(
-          (value: any) =>
-            typeof value === "number" &&
-            Number.isFinite(value)
-        )
-        .reduce(
-          (sum: number, value: number) =>
-            sum + value,
-          0
-        )
-        .toFixed(2)
+      rawCess.toFixed(2)
     );
 
     const calculatedTax = Number(
       (
-        calculatedCGST +
-        calculatedSGST +
-        calculatedIGST +
-        calculatedCess
+        rawCGST +
+        rawSGST +
+        rawIGST +
+        rawCess
       ).toFixed(2)
     );
 
-    // ==================================================
     // PRINTED TOTAL
     // ==================================================
 

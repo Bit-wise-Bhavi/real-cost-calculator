@@ -191,55 +191,70 @@ function calculateStoredBillValidation(
     rateKey: string,
     amountKey: string
   ) {
-    return Number(
-      items
-        .map((item: any) =>
-          calculateTaxComponent(
-            item,
-            rateKey,
-            amountKey
-          )
+    return items
+      .map((item: any) =>
+        calculateTaxComponent(
+          item,
+          rateKey,
+          amountKey
         )
-        .filter(
-          (value: any) =>
-            typeof value === "number" &&
-            Number.isFinite(value)
-        )
-        .reduce(
-          (sum: number, value: number) =>
-            sum + value,
-          0
-        )
-        .toFixed(2)
-    );
+      )
+      .filter(
+        (value: any) =>
+          typeof value === "number" &&
+          Number.isFinite(value)
+      )
+      .reduce(
+        (sum: number, value: number) =>
+          sum + value,
+        0
+      );
   }
 
-  const calculatedCGST = sumTax(
+  const rawCGST = sumTax(
     "cgst_rate",
     "cgst_amount"
   );
 
-  const calculatedSGST = sumTax(
+  const rawSGST = sumTax(
     "sgst_rate",
     "sgst_amount"
   );
 
-  const calculatedIGST = sumTax(
+  const rawIGST = sumTax(
     "igst_rate",
     "igst_amount"
   );
 
-  const calculatedCess = sumTax(
+  const rawCess = sumTax(
     "cess_rate",
     "cess_amount"
   );
 
+  // Round each displayed component, but reconcile using
+  // the combined raw tax before rounding.
+  const calculatedCGST = Number(
+    rawCGST.toFixed(2)
+  );
+
+  const calculatedSGST = Number(
+    rawSGST.toFixed(2)
+  );
+
+  const calculatedIGST = Number(
+    rawIGST.toFixed(2)
+  );
+
+  const calculatedCess = Number(
+    rawCess.toFixed(2)
+  );
+
   const calculatedTax = Number(
     (
-      calculatedCGST +
-      calculatedSGST +
-      calculatedIGST +
-      calculatedCess
+      rawCGST +
+      rawSGST +
+      rawIGST +
+      rawCess
     ).toFixed(2)
   );
 
