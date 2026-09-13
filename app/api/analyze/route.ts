@@ -292,6 +292,18 @@ Do not silently correct the invoice.
 
 Do not replace a printed value with a calculated value.
 
+PRODUCT NAME ACCURACY:
+- Transcribe each product/service name as it is printed on the bill.
+- Preserve the complete printed wording, including words such as "SHAKE",
+  "SHACK", "MEAL", "COMBO", "REGULAR", "LARGE", etc.
+- Do not shorten, abbreviate, autocorrect, normalize, translate, or replace
+  a product name with a more familiar name.
+- Do not guess a missing character or word.
+- Use the surrounding printed text and the visible lettering in the image
+  to resolve OCR ambiguity only when the image supports that reading.
+- If the exact product name cannot be reliably read, return the best
+  directly visible text rather than inventing a different product name.
+
 ==================================================
 STEP 3 — PURCHASE TYPE
 ==================================================
@@ -897,135 +909,150 @@ Do not invent information.
     // ==================================================
     // TAX CALCULATIONS
     // ==================================================
+    //
+    // Prefer mathematically derived tax from the printed taxable
+    // value and printed tax rate. This avoids double-counting or
+    // accumulating already-rounded printed tax amounts.
+    //
+    // If a rate is unavailable, use the printed tax amount instead.
+    // This does NOT alter the bill's printed amount or the saved
+    // expense amount. It only calculates a reconciliation value.
 
-    const cgstValues =
+    function calculateTaxComponent(
+      item: any,
+      rateKey: string,
+      amountKey: string
+    ) {
+      const taxableValue =
+        typeof item?.taxable_value === "number" &&
+        Number.isFinite(item.taxable_value)
+          ? item.taxable_value
+          : null;
+
+      const rate =
+        typeof item?.[rateKey] === "number" &&
+        Number.isFinite(item[rateKey])
+          ? item[rateKey]
+          : null;
+
+      const printedAmount =
+        typeof item?.[amountKey] === "number" &&
+        Number.isFinite(item[amountKey])
+          ? item[amountKey]
+          : null;
+
+      if (taxableValue !== null && rate !== null) {
+        return taxableValue * (rate / 100);
+      }
+
+      return printedAmount;
+    }
+
+    const calculatedCGST = Number(
       bill.items
-        .map(
-          (item: any) =>
-            item.cgst_amount
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "cgst_rate",
+            "cgst_amount"
+          )
         )
         .filter(
           (value: any) =>
-            typeof value ===
-            "number"
-        );
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
+    );
 
-    const sgstValues =
+    const calculatedSGST = Number(
       bill.items
-        .map(
-          (item: any) =>
-            item.sgst_amount
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "sgst_rate",
+            "sgst_amount"
+          )
         )
         .filter(
           (value: any) =>
-            typeof value ===
-            "number"
-        );
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
+    );
 
-    const igstValues =
+    const calculatedIGST = Number(
       bill.items
-        .map(
-          (item: any) =>
-            item.igst_amount
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "igst_rate",
+            "igst_amount"
+          )
         )
         .filter(
           (value: any) =>
-            typeof value ===
-            "number"
-        );
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
+    );
 
-    const cessValues =
+    const calculatedCess = Number(
       bill.items
-        .map(
-          (item: any) =>
-            item.cess_amount
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            "cess_rate",
+            "cess_amount"
+          )
         )
         .filter(
           (value: any) =>
-            typeof value ===
-            "number"
-        );
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
+    );
 
-    const calculatedCGST =
-      Number(
-        cgstValues
-          .reduce(
-            (
-              sum: number,
-              value: number
-            ) =>
-              sum +
-              value,
-            0
-          )
-          .toFixed(2)
-      );
-
-    const calculatedSGST =
-      Number(
-        sgstValues
-          .reduce(
-            (
-              sum: number,
-              value: number
-            ) =>
-              sum +
-              value,
-            0
-          )
-          .toFixed(2)
-      );
-
-    const calculatedIGST =
-      Number(
-        igstValues
-          .reduce(
-            (
-              sum: number,
-              value: number
-            ) =>
-              sum +
-              value,
-            0
-          )
-          .toFixed(2)
-      );
-
-    const calculatedCess =
-      Number(
-        cessValues
-          .reduce(
-            (
-              sum: number,
-              value: number
-            ) =>
-              sum +
-              value,
-            0
-          )
-          .toFixed(2)
-      );
-
-    const calculatedTax =
-      Number(
-        (
-          calculatedCGST +
-          calculatedSGST +
-          calculatedIGST +
-          calculatedCess
-        ).toFixed(2)
-      );
+    const calculatedTax = Number(
+      (
+        calculatedCGST +
+        calculatedSGST +
+        calculatedIGST +
+        calculatedCess
+      ).toFixed(2)
+    );
 
     // ==================================================
     // PRINTED TOTAL
     // ==================================================
 
     const reportedTotal =
-      typeof bill.totals
-        .total_invoice_value ===
-        "number"
-        ? bill.totals
-          .total_invoice_value
+      typeof bill.totals.total_invoice_value ===
+      "number"
+        ? bill.totals.total_invoice_value
         : null;
 
     // ==================================================
@@ -1033,28 +1060,26 @@ Do not invent information.
     // ==================================================
 
     const printedOtherCharges =
-      typeof bill.totals
-        .total_other_charges ===
-        "number"
+      typeof bill.totals.total_other_charges ===
+      "number"
         ? bill.totals.total_other_charges
         : 0;
 
     const printedRoundOff =
-      typeof bill.totals.round_off ===
-        "number"
+      typeof bill.totals.round_off === "number"
         ? bill.totals.round_off
         : 0;
 
     const calculatedInvoiceTotal =
       calculatedItemBase !== null
         ? Number(
-          (
-            calculatedItemBase +
-            calculatedTax +
-            printedOtherCharges +
-            printedRoundOff
-          ).toFixed(2)
-        )
+            (
+              calculatedItemBase +
+              calculatedTax +
+              printedOtherCharges +
+              printedRoundOff
+            ).toFixed(2)
+          )
         : null;
 
     let difference = null;
@@ -1074,6 +1099,13 @@ Do not invent information.
     // ==================================================
     // VALIDATION
     // ==================================================
+    //
+    // There is NO blanket tolerance here.
+    // Real differences remain visible. A difference is only zero
+    // when the derived invoice total actually rounds to the same
+    // two-decimal value as the printed invoice total.
+    //
+    // The expense amount itself is never changed by this check.
 
     bill.validation = {
       calculated_item_total:
@@ -1101,12 +1133,9 @@ Do not invent information.
         difference,
 
       status:
-        difference ===
-          null
+        difference === null
           ? "insufficient_data"
-          : Math.abs(
-            difference
-          ) < 0.01
+          : difference === 0
             ? "matched"
             : "difference_found",
     };

@@ -1213,7 +1213,7 @@ export default function Home() {
 
                 {/* UPLOAD CARD */}
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
                   <label
                     htmlFor="bill-upload"
@@ -1490,7 +1490,7 @@ export default function Home() {
 
                 </div>
 
-                <div className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm sm:w-auto sm:text-right">
+                <div className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm sm:w-auto sm:min-w-[150px] sm:text-right">
 
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                     Purchase Type

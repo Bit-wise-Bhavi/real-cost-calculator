@@ -109,6 +109,200 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
+
+function calculateStoredBillValidation(
+  billData: any
+) {
+  if (!billData || !Array.isArray(billData.items)) {
+    return null;
+  }
+
+  const items = billData.items;
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  const hasAllTaxableValues = items.every(
+    (item: any) =>
+      typeof item?.taxable_value === "number" &&
+      Number.isFinite(item.taxable_value)
+  );
+
+  const hasAllLineTotals = items.every(
+    (item: any) =>
+      typeof item?.line_total === "number" &&
+      Number.isFinite(item.line_total)
+  );
+
+  const calculatedItemBase = hasAllTaxableValues
+    ? Number(
+        items
+          .reduce(
+            (sum: number, item: any) =>
+              sum + item.taxable_value,
+            0
+          )
+          .toFixed(2)
+      )
+    : hasAllLineTotals
+      ? Number(
+          items
+            .reduce(
+              (sum: number, item: any) =>
+                sum + item.line_total,
+              0
+            )
+            .toFixed(2)
+        )
+      : null;
+
+  function calculateTaxComponent(
+    item: any,
+    rateKey: string,
+    amountKey: string
+  ) {
+    const taxableValue =
+      typeof item?.taxable_value === "number" &&
+      Number.isFinite(item.taxable_value)
+        ? item.taxable_value
+        : null;
+
+    const rate =
+      typeof item?.[rateKey] === "number" &&
+      Number.isFinite(item[rateKey])
+        ? item[rateKey]
+        : null;
+
+    const printedAmount =
+      typeof item?.[amountKey] === "number" &&
+      Number.isFinite(item[amountKey])
+        ? item[amountKey]
+        : null;
+
+    if (taxableValue !== null && rate !== null) {
+      return taxableValue * (rate / 100);
+    }
+
+    return printedAmount;
+  }
+
+  function sumTax(
+    rateKey: string,
+    amountKey: string
+  ) {
+    return Number(
+      items
+        .map((item: any) =>
+          calculateTaxComponent(
+            item,
+            rateKey,
+            amountKey
+          )
+        )
+        .filter(
+          (value: any) =>
+            typeof value === "number" &&
+            Number.isFinite(value)
+        )
+        .reduce(
+          (sum: number, value: number) =>
+            sum + value,
+          0
+        )
+        .toFixed(2)
+    );
+  }
+
+  const calculatedCGST = sumTax(
+    "cgst_rate",
+    "cgst_amount"
+  );
+
+  const calculatedSGST = sumTax(
+    "sgst_rate",
+    "sgst_amount"
+  );
+
+  const calculatedIGST = sumTax(
+    "igst_rate",
+    "igst_amount"
+  );
+
+  const calculatedCess = sumTax(
+    "cess_rate",
+    "cess_amount"
+  );
+
+  const calculatedTax = Number(
+    (
+      calculatedCGST +
+      calculatedSGST +
+      calculatedIGST +
+      calculatedCess
+    ).toFixed(2)
+  );
+
+  const reportedTotal =
+    typeof billData?.totals?.total_invoice_value ===
+    "number"
+      ? billData.totals.total_invoice_value
+      : null;
+
+  const otherCharges =
+    typeof billData?.totals?.total_other_charges ===
+    "number"
+      ? billData.totals.total_other_charges
+      : 0;
+
+  const roundOff =
+    typeof billData?.totals?.round_off === "number"
+      ? billData.totals.round_off
+      : 0;
+
+  const calculatedInvoiceTotal =
+    calculatedItemBase !== null
+      ? Number(
+          (
+            calculatedItemBase +
+            calculatedTax +
+            otherCharges +
+            roundOff
+          ).toFixed(2)
+        )
+      : null;
+
+  const difference =
+    calculatedInvoiceTotal !== null &&
+    reportedTotal !== null
+      ? Number(
+          (
+            reportedTotal -
+            calculatedInvoiceTotal
+          ).toFixed(2)
+        )
+      : null;
+
+  return {
+    calculated_item_total:
+      calculatedInvoiceTotal,
+    calculated_cgst: calculatedCGST,
+    calculated_sgst: calculatedSGST,
+    calculated_igst: calculatedIGST,
+    calculated_cess: calculatedCess,
+    calculated_tax_total: calculatedTax,
+    reported_invoice_total: reportedTotal,
+    difference_between_item_totals_and_invoice_total:
+      difference,
+    status:
+      difference === null
+        ? "insufficient_data"
+        : difference === 0
+          ? "matched"
+          : "difference_found",
+  };
+}
+
 export default function ExpenseDetails() {
   const params = useParams();
   const router = useRouter();
@@ -667,8 +861,17 @@ export default function ExpenseDetails() {
   const billData =
     expense.bill_data;
 
+  // Recalculate scanned-bill reconciliation from the original
+  // saved bill data so old history records are not stuck with a
+  // stale validation result from an earlier calculation rule.
+  // This is display/verification only; the stored expense amount
+  // is never changed.
   const validationData =
-    expense.validation_data;
+    !isManual
+      ? calculateStoredBillValidation(
+          billData
+        ) || expense.validation_data
+      : expense.validation_data;
 
   // For scanned bills, display the date printed on the bill.
   // Fall back to the stored expense date only when the bill
@@ -1431,7 +1634,7 @@ export default function ExpenseDetails() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Validation information captured during bill analysis.
+                  Recalculated from the original bill data. The stored expense amount is not changed.
                 </p>
 
               </div>
@@ -1439,7 +1642,7 @@ export default function ExpenseDetails() {
               <div className="grid gap-4 sm:grid-cols-3">
 
                 <MoneyInfo
-                  label="Calculated Total"
+                  label="Calculated Invoice Total"
                   value={
                     validationData.calculated_item_total
                   }
@@ -1449,7 +1652,7 @@ export default function ExpenseDetails() {
                 />
 
                 <MoneyInfo
-                  label="Printed Total"
+                  label="Printed Invoice Total"
                   value={
                     validationData.reported_invoice_total
                   }
