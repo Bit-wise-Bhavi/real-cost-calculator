@@ -162,6 +162,18 @@ export default function Insights() {
   const [balance, setBalance] =
     useState<number | null>(null);
 
+  const [balanceInput, setBalanceInput] =
+    useState("");
+
+  const [savingBalance, setSavingBalance] =
+    useState(false);
+
+  const [balanceMessage, setBalanceMessage] =
+    useState<string | null>(null);
+
+  const [balanceError, setBalanceError] =
+    useState<string | null>(null);
+
   const { darkMode } = useTheme();
 
   // ==================================================
@@ -244,6 +256,7 @@ export default function Insights() {
           const currentBalance =
             Number(balanceData.balance) || 0;
           setBalance(currentBalance);
+          setBalanceInput(String(currentBalance));
         }
       } catch (err) {
         setError(
@@ -739,6 +752,53 @@ export default function Insights() {
     expenses[0]?.currency ||
     "INR";
 
+  // ==================================================
+  // BALANCE ACTIONS
+  // ==================================================
+
+  async function handleSaveBalance() {
+    const parsedBalance = Number(balanceInput);
+
+    if (!Number.isFinite(parsedBalance) || parsedBalance < 0) {
+      setBalanceError("Enter a valid balance of ₹0 or more.");
+      setBalanceMessage(null);
+      return;
+    }
+
+    setSavingBalance(true);
+    setBalanceError(null);
+    setBalanceMessage(null);
+
+    try {
+      const { data, error } =
+        await supabaseBrowser.rpc(
+          "set_my_balance",
+          {
+            p_balance: parsedBalance,
+          }
+        );
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const savedBalance =
+        Number(data) || 0;
+
+      setBalance(savedBalance);
+      setBalanceInput(String(savedBalance));
+      setBalanceMessage("Balance saved successfully.");
+    } catch (err) {
+      setBalanceError(
+        err instanceof Error
+          ? err.message
+          : "Could not save your balance."
+      );
+    } finally {
+      setSavingBalance(false);
+    }
+  }
+
   const balanceAwareAdvice =
     useMemo(() => {
       if (balance === null) {
@@ -986,7 +1046,7 @@ export default function Insights() {
   }
 
   return (
-    <main className={`insights-page min-h-screen ${darkMode ? "!bg-[#020617] text-slate-50" : "bg-slate-50 text-slate-900"}`}>
+    <main className={`min-h-screen ${darkMode ? "bg-slate-950" : "bg-slate-50"} text-slate-900`}>
 
       {/* ==================================================
           HEADER
@@ -1071,7 +1131,7 @@ export default function Insights() {
             BALANCE + SAVING GUIDANCE
         ================================================== */}
 
-        <section className="mb-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -1079,10 +1139,10 @@ export default function Insights() {
                   Money Available
                 </p>
                 <h3 className="mt-1 text-xl font-bold">
-                  Current Balance
+                  Your Current Balance
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Your tracked balance from the Real Cost home page.
+                <p className="mt-1 text-sm text-slate-500">
+                  This is the balance Real Cost will use for balance-aware saving guidance.
                 </p>
               </div>
 
@@ -1091,18 +1151,59 @@ export default function Insights() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-xl bg-slate-50 p-5">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="relative flex-1">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={balanceInput}
+                  onChange={(event) => {
+                    setBalanceInput(event.target.value);
+                    setBalanceError(null);
+                    setBalanceMessage(null);
+                  }}
+                  placeholder="Enter current balance"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-9 pr-4 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveBalance}
+                disabled={savingBalance}
+                className="flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {savingBalance && (
+                  <Loader2 size={16} className="animate-spin" />
+                )}
+                Save Balance
+              </button>
+            </div>
+
+            {balanceError && (
+              <p className="mt-3 text-sm font-medium text-red-600">
+                {balanceError}
+              </p>
+            )}
+
+            {balanceMessage && (
+              <p className="mt-3 text-sm font-medium text-emerald-600">
+                {balanceMessage}
+              </p>
+            )}
+
+            <div className="mt-5 rounded-xl bg-slate-50 p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Tracked Balance
               </p>
-              <p className="mt-1 text-3xl font-bold text-slate-950">
+              <p className="mt-1 text-2xl font-bold text-slate-950">
                 {balance === null ? "Not set" : formatMoney(balance, currency)}
               </p>
             </div>
-
-            <p className="mt-4 text-xs leading-5 text-slate-500">
-              To set or update this amount, use the Current Balance section on the home page.
-            </p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -2211,7 +2312,7 @@ export default function Insights() {
 
                 {/* CALENDAR */}
 
-                <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                <div className="grid min-w-0 grid-cols-7 gap-1 sm:gap-2">
 
                   {calendarCells.map(
                     (
@@ -2256,16 +2357,16 @@ export default function Insights() {
                               cell.key
                             )
                           }
-                          className={`min-h-[70px] rounded-xl border p-2 text-left transition sm:min-h-[100px] ${isSelected
+                          className={`min-w-0 min-h-[70px] overflow-hidden rounded-xl border p-1.5 text-left transition sm:min-h-[100px] sm:p-2 ${isSelected
                             ? "border-slate-950 bg-slate-950 text-white"
                             : "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50"
                             }`}
                         >
 
-                          <div className="flex items-start justify-between">
+                          <div className="flex min-w-0 items-start justify-between gap-1">
 
                             <span
-                              className={`text-xs font-semibold ${isSelected
+                              className={`min-w-0 text-xs font-semibold ${isSelected
                                 ? "text-white"
                                 : isToday
                                   ? "text-slate-950"
@@ -2277,7 +2378,7 @@ export default function Insights() {
 
                             {isToday && (
                               <span
-                                className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${isSelected
+                                className={`shrink-0 rounded-full px-1 py-0.5 text-[8px] font-bold ${isSelected
                                   ? "bg-white/10 text-white"
                                   : "bg-slate-100 text-slate-600"
                                   }`}
@@ -2290,10 +2391,11 @@ export default function Insights() {
 
                           {cell.amount >
                             0 && (
-                              <div className="mt-4">
+                              <div className="mt-3 min-w-0 sm:mt-4">
 
                                 <p
-                                  className={`text-xs font-bold sm:text-sm ${isSelected
+                                  title={formatMoney(cell.amount, currency)}
+                                  className={`min-w-0 truncate text-[10px] font-bold tracking-tight sm:text-sm ${isSelected
                                     ? "text-white"
                                     : "text-slate-900"
                                     }`}
@@ -2305,7 +2407,7 @@ export default function Insights() {
                                 </p>
 
                                 <p
-                                  className={`mt-1 text-[10px] ${isSelected
+                                  className={`mt-1 truncate text-[9px] ${isSelected
                                     ? "text-slate-400"
                                     : "text-slate-400"
                                     }`}
@@ -2599,4 +2701,3 @@ function EmptyMessage({
     </div>
   );
 }
-

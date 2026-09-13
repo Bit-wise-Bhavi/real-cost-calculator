@@ -1,17 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
-import {
-    ArrowLeft,
-    Eye,
-    EyeOff,
-    Loader2,
-    Moon,
-    Receipt,
-    Sun,
-} from "lucide-react";
-
+import { Eye, EyeOff, Loader2, Moon, Receipt, Sun } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useTheme } from "@/components/theme-provider";
 
@@ -49,7 +39,8 @@ export default function LoginPage() {
                 await supabaseBrowser.auth.resetPasswordForEmail(
                     trimmedEmail,
                     {
-                        redirectTo: `${window.location.origin}/auth/reset-password`,
+                        redirectTo:
+                            `${window.location.origin}/auth/reset-password`,
                     }
                 );
 
@@ -131,13 +122,6 @@ export default function LoginPage() {
                 return;
             }
 
-            /*
-             * Supabase intentionally returns an obfuscated/fake user
-             * when someone tries to sign up with an already-confirmed
-             * email while email confirmation is enabled.
-             *
-             * In that case the returned user has no identities.
-             */
             const identities = data.user?.identities;
 
             const emailAlreadyRegistered =
@@ -155,7 +139,6 @@ export default function LoginPage() {
             setMessage(
                 "Account created. A confirmation email has been sent to your email address. Please confirm your email, then sign in."
             );
-
             setMode("login");
         } catch (err) {
             setError(
@@ -177,10 +160,7 @@ export default function LoginPage() {
         >
             <header className="border-b border-slate-200 bg-white">
                 <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-                    <Link
-                        href="/"
-                        className="flex items-center gap-3 rounded-xl"
-                    >
+                    <div className="flex items-center gap-3 rounded-xl">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
                             <Receipt size={21} />
                         </div>
@@ -194,7 +174,7 @@ export default function LoginPage() {
                                 Understand where your money goes.
                             </p>
                         </div>
-                    </Link>
+                    </div>
 
                     <div className="flex items-center gap-2">
                         <button
@@ -203,20 +183,12 @@ export default function LoginPage() {
                             className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                             aria-label="Toggle dark mode"
                         >
-                            {darkMode ? (
+                            {mounted && darkMode ? (
                                 <Sun size={17} />
                             ) : (
                                 <Moon size={17} />
                             )}
                         </button>
-
-                        <Link
-                            href="/"
-                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        >
-                            <ArrowLeft size={16} />
-                            Home
-                        </Link>
                     </div>
                 </div>
             </header>
@@ -329,7 +301,9 @@ export default function LoginPage() {
                                     }
                                     value={password}
                                     onChange={(event) =>
-                                        setPassword(event.target.value)
+                                        setPassword(
+                                            event.target.value
+                                        )
                                     }
                                     placeholder="At least 6 characters"
                                     autoComplete={
@@ -402,65 +376,65 @@ export default function LoginPage() {
             </div>
 
             <style jsx global>{`
-        .auth-dark {
-          background: #020617 !important;
-          color: #f8fafc !important;
-        }
+                .auth-dark {
+                    background: #020617 !important;
+                    color: #f8fafc !important;
+                }
 
-        .auth-dark .bg-white {
-          background-color: #0f172a !important;
-        }
+                .auth-dark .bg-white {
+                    background-color: #0f172a !important;
+                }
 
-        .auth-dark .bg-slate-50 {
-          background-color: #020617 !important;
-        }
+                .auth-dark .bg-slate-50 {
+                    background-color: #020617 !important;
+                }
 
-        .auth-dark .bg-slate-100 {
-          background-color: #1e293b !important;
-        }
+                .auth-dark .bg-slate-100 {
+                    background-color: #1e293b !important;
+                }
 
-        .auth-dark .border-slate-200 {
-          border-color: #334155 !important;
-        }
+                .auth-dark .border-slate-200 {
+                    border-color: #334155 !important;
+                }
 
-        .auth-dark .text-slate-950,
-        .auth-dark .text-slate-900 {
-          color: #f8fafc !important;
-        }
+                .auth-dark .text-slate-950,
+                .auth-dark .text-slate-900 {
+                    color: #f8fafc !important;
+                }
 
-        .auth-dark .text-slate-800,
-        .auth-dark .text-slate-700 {
-          color: #e2e8f0 !important;
-        }
+                .auth-dark .text-slate-800,
+                .auth-dark .text-slate-700 {
+                    color: #e2e8f0 !important;
+                }
 
-        .auth-dark .text-slate-600,
-        .auth-dark .text-slate-500 {
-          color: #94a3b8 !important;
-        }
+                .auth-dark .text-slate-600,
+                .auth-dark .text-slate-500 {
+                    color: #94a3b8 !important;
+                }
 
-        .auth-dark .text-slate-400 {
-          color: #64748b !important;
-        }
+                .auth-dark .text-slate-400 {
+                    color: #64748b !important;
+                }
 
-        .auth-dark .bg-slate-950 {
-          background-color: #f8fafc !important;
-          color: #020617 !important;
-        }
+                .auth-dark .bg-slate-950 {
+                    background-color: #f8fafc !important;
+                    color: #020617 !important;
+                }
 
-        .auth-dark input {
-          background-color: #0f172a !important;
-          color: #f8fafc !important;
-          border-color: #334155 !important;
-        }
+                .auth-dark input {
+                    background-color: #0f172a !important;
+                    color: #f8fafc !important;
+                    border-color: #334155 !important;
+                }
 
-        .auth-dark .hover\\:bg-slate-50:hover {
-          background-color: #1e293b !important;
-        }
+                .auth-dark .hover\\:bg-slate-50:hover {
+                    background-color: #1e293b !important;
+                }
 
-        .auth-dark .hover\\:bg-slate-800:hover {
-          background-color: #e2e8f0 !important;
-        }
-      `}</style>
+                .auth-dark .hover\\:bg-slate-800:hover {
+                    background-color: #e2e8f0 !important;
+                }
+            `}</style>
         </main>
     );
 }

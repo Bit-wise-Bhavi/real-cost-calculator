@@ -893,12 +893,12 @@ export default function Home() {
       ================================================== */}
 
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
 
           <Link
             href="/"
             onClick={reset}
-            className="flex shrink-0 items-center gap-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className="flex min-w-0 shrink-0 items-center gap-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
               <Receipt size={21} />
@@ -914,63 +914,65 @@ export default function Home() {
             </div>
           </Link>
 
-          <nav className="flex flex-wrap items-center justify-end gap-2">
-            <Link
-              href="/history"
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              History
-            </Link>
+          <nav className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
+            <div className="grid w-full grid-cols-4 gap-2 sm:flex sm:w-auto sm:items-center">
+              <Link
+                href="/history"
+                className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:text-sm"
+              >
+                History
+              </Link>
 
-            <Link
-              href="/insights"
-              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              <BarChart3 size={16} />
-              <span>Insights</span>
-            </Link>
+              <Link
+                href="/insights"
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:text-sm"
+              >
+                <BarChart3 size={15} />
+                <span>Insights</span>
+              </Link>
 
-            <Link
-              href="/dashboard"
-              className="hidden rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:block"
-            >
-              Dashboard
-            </Link>
+              <Link
+                href="/dashboard"
+                className="hidden rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:block"
+              >
+                Dashboard
+              </Link>
 
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
-            >
-              {darkMode ? <Sun size={17} /> : <Moon size={17} />}
-            </button>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                className="flex h-9 w-full items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 sm:h-10 sm:w-10"
+              >
+                {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+              </button>
 
-            {!authLoading && (
-              session ? (
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  <LogOut size={16} />
-                  Log out
-                </button>
-              ) : (
-                <Link
-                  href="/login"
-                  className="flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  <LogIn size={16} />
-                  Sign in
-                </Link>
-              )
-            )}
+              {!authLoading && (
+                session ? (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="col-span-2 flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-2.5 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 sm:col-span-1 sm:px-3 sm:text-sm"
+                  >
+                    <LogOut size={16} />
+                    Log out
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="col-span-2 flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-2.5 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 sm:col-span-1 sm:px-3 sm:text-sm"
+                  >
+                    <LogIn size={16} />
+                    Sign in
+                  </Link>
+                )
+              )}
+            </div>
 
             {bill && (
               <button
                 onClick={reset}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
               >
                 <ArrowLeft size={16} />
                 New Bill
@@ -1456,7 +1458,7 @@ export default function Home() {
 
             <section>
 
-              <div className="mb-6 flex items-start justify-between gap-6">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
 
                 <div>
 
@@ -1488,7 +1490,7 @@ export default function Home() {
 
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-right shadow-sm">
+                <div className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm sm:w-auto sm:text-right">
 
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                     Purchase Type

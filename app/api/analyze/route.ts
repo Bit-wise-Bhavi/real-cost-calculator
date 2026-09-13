@@ -849,25 +849,50 @@ Do not invent information.
             "number"
         );
 
-    const calculatedItemTotal =
-      lineTotals.length ===
+    const taxableValues =
+      bill.items
+        .map(
+          (item: any) =>
+            item.taxable_value
+        )
+        .filter(
+          (value: any) =>
+            typeof value === "number" &&
+            Number.isFinite(value)
+        );
+
+    const calculatedItemBase =
+      taxableValues.length ===
         bill.items.length &&
-        bill.items.length >
-        0
+        bill.items.length > 0
         ? Number(
-          lineTotals
+          taxableValues
             .reduce(
               (
                 sum: number,
                 value: number
               ) =>
-                sum +
-                value,
+                sum + value,
               0
             )
             .toFixed(2)
         )
-        : null;
+        : lineTotals.length ===
+          bill.items.length &&
+          bill.items.length > 0
+          ? Number(
+            lineTotals
+              .reduce(
+                (
+                  sum: number,
+                  value: number
+                ) =>
+                  sum + value,
+                0
+              )
+              .toFixed(2)
+          )
+          : null;
 
     // ==================================================
     // TAX CALCULATIONS
@@ -1007,22 +1032,43 @@ Do not invent information.
     // RECONCILIATION
     // ==================================================
 
-    let difference =
-      null;
+    const printedOtherCharges =
+      typeof bill.totals
+        .total_other_charges ===
+        "number"
+        ? bill.totals.total_other_charges
+        : 0;
+
+    const printedRoundOff =
+      typeof bill.totals.round_off ===
+        "number"
+        ? bill.totals.round_off
+        : 0;
+
+    const calculatedInvoiceTotal =
+      calculatedItemBase !== null
+        ? Number(
+          (
+            calculatedItemBase +
+            calculatedTax +
+            printedOtherCharges +
+            printedRoundOff
+          ).toFixed(2)
+        )
+        : null;
+
+    let difference = null;
 
     if (
-      calculatedItemTotal !==
-      null &&
-      reportedTotal !==
-      null
+      calculatedInvoiceTotal !== null &&
+      reportedTotal !== null
     ) {
-      difference =
-        Number(
-          (
-            reportedTotal -
-            calculatedItemTotal
-          ).toFixed(2)
-        );
+      difference = Number(
+        (
+          reportedTotal -
+          calculatedInvoiceTotal
+        ).toFixed(2)
+      );
     }
 
     // ==================================================
@@ -1031,7 +1077,7 @@ Do not invent information.
 
     bill.validation = {
       calculated_item_total:
-        calculatedItemTotal,
+        calculatedInvoiceTotal,
 
       calculated_cgst:
         calculatedCGST,
