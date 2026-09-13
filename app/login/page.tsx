@@ -136,10 +136,8 @@ export default function LoginPage() {
                 return;
             }
 
-            setMessage(
-                "Account created. A confirmation email has been sent to your email address. Please confirm your email, then sign in."
-            );
-            setMode("login");
+            window.location.href = "/";
+            return;
         } catch (err) {
             setError(
                 err instanceof Error
@@ -153,10 +151,11 @@ export default function LoginPage() {
 
     return (
         <main
-            className={`min-h-screen ${mounted && darkMode
-                ? "auth-dark"
-                : "auth-light"
-                } bg-slate-50 text-slate-900`}
+            className={`min-h-screen ${
+                mounted && darkMode
+                    ? "auth-dark"
+                    : "auth-light"
+            } bg-slate-50 text-slate-900`}
         >
             <header className="border-b border-slate-200 bg-white">
                 <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -221,10 +220,11 @@ export default function LoginPage() {
                                 setError(null);
                                 setMessage(null);
                             }}
-                            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mode === "login"
-                                ? "bg-white text-slate-950 shadow-sm"
-                                : "text-slate-500 hover:text-slate-800"
-                                }`}
+                            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                                mode === "login"
+                                    ? "bg-white text-slate-950 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800"
+                            }`}
                         >
                             Log in
                         </button>
@@ -236,10 +236,11 @@ export default function LoginPage() {
                                 setError(null);
                                 setMessage(null);
                             }}
-                            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${mode === "signup"
-                                ? "bg-white text-slate-950 shadow-sm"
-                                : "text-slate-500 hover:text-slate-800"
-                                }`}
+                            className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                                mode === "signup"
+                                    ? "bg-white text-slate-950 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-800"
+                            }`}
                         >
                             Sign up
                         </button>
@@ -364,8 +365,8 @@ export default function LoginPage() {
                             {loading
                                 ? "Please wait..."
                                 : mode === "login"
-                                    ? "Log in"
-                                    : "Create account"}
+                                  ? "Log in"
+                                  : "Create account"}
                         </button>
                     </form>
 
