@@ -918,14 +918,14 @@ export default function Home() {
             <div className="grid w-full grid-cols-4 gap-2 sm:flex sm:w-auto sm:items-center">
               <Link
                 href="/history"
-                className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:text-sm"
+                className="flex min-w-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:text-sm"
               >
                 History
               </Link>
 
               <Link
                 href="/insights"
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:text-sm"
+                className="flex min-w-0 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:px-3 sm:gap-1.5 sm:text-sm"
               >
                 <BarChart3 size={15} />
                 <span>Insights</span>
@@ -942,7 +942,7 @@ export default function Home() {
                 type="button"
                 onClick={toggleTheme}
                 aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-                className="flex h-9 w-full items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 sm:h-10 sm:w-10"
+                className="flex h-9 min-w-0 w-full items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 sm:h-10 sm:w-10"
               >
                 {darkMode ? <Sun size={17} /> : <Moon size={17} />}
               </button>
@@ -952,7 +952,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="col-span-2 flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-2.5 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 sm:col-span-1 sm:px-3 sm:text-sm"
+                    className="col-span-1 flex min-w-0 items-center justify-center gap-1 rounded-lg bg-slate-950 px-2 py-2 text-[11px] font-semibold text-white transition hover:bg-slate-800 sm:px-3 sm:gap-2 sm:text-sm"
                   >
                     <LogOut size={16} />
                     Log out
@@ -960,7 +960,7 @@ export default function Home() {
                 ) : (
                   <Link
                     href="/login"
-                    className="col-span-2 flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-2.5 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 sm:col-span-1 sm:px-3 sm:text-sm"
+                    className="col-span-1 flex min-w-0 items-center justify-center gap-1 rounded-lg bg-slate-950 px-2 py-2 text-[11px] font-semibold text-white transition hover:bg-slate-800 sm:px-3 sm:gap-2 sm:text-sm"
                   >
                     <LogIn size={16} />
                     Sign in
@@ -987,7 +987,7 @@ export default function Home() {
           MAIN
       ================================================== */}
 
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
 
         {/* ==================================================
             CURRENT BALANCE

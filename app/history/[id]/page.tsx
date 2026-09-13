@@ -479,16 +479,15 @@ export default function ExpenseDetails() {
       setExpense({
         ...expense,
         amount,
-        category: editCategory.trim(),
-        expense_date: editDate,
-        description: editDescription.trim() || null,
+        category:
+          editCategory.trim(),
+        expense_date:
+          editDate,
+        description:
+          editDescription.trim() || null,
       });
 
       setIsEditing(false);
-
-      // Go back to History after a successful edit so the list is
-      // reloaded from Supabase instead of showing the stale amount.
-      router.push("/history");
     } catch (err) {
       setError(
         err instanceof Error
@@ -632,7 +631,7 @@ export default function ExpenseDetails() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+        <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
             <div className="flex items-start gap-3">
               <AlertCircle
@@ -671,6 +670,18 @@ export default function ExpenseDetails() {
   const validationData =
     expense.validation_data;
 
+  // For scanned bills, display the date printed on the bill.
+  // Fall back to the stored expense date only when the bill
+  // does not contain a valid invoice date.
+  const displayDate =
+    !isManual &&
+    typeof billData?.invoice?.invoice_date === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      billData.invoice.invoice_date
+    )
+      ? billData.invoice.invoice_date
+      : expense.expense_date;
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
 
@@ -679,7 +690,7 @@ export default function ExpenseDetails() {
       ================================================== */}
 
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
 
           <Link
             href="/history"
@@ -692,7 +703,7 @@ export default function ExpenseDetails() {
             Expense History
           </Link>
 
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+          <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
 
             {/* EDIT — KACCHA BILL ONLY */}
 
@@ -706,7 +717,7 @@ export default function ExpenseDetails() {
                   deleting ||
                   saving
                 }
-                className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4"
               >
                 <PenLine
                   size={16}
@@ -727,7 +738,7 @@ export default function ExpenseDetails() {
                 deleting ||
                 saving
               }
-              className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4"
             >
               {deleting ? (
                 <Loader2
@@ -752,7 +763,7 @@ export default function ExpenseDetails() {
           MAIN
       ================================================== */}
 
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
 
         {/* ==================================================
             HERO
@@ -792,7 +803,7 @@ export default function ExpenseDetails() {
 
               </div>
 
-              <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+              <h1 className="max-w-full break-words text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
                 {expense.vendor_name ||
                   expense.description ||
                   (isManual
@@ -802,13 +813,13 @@ export default function ExpenseDetails() {
 
               <p className="mt-2 text-sm text-slate-500">
                 {formatDate(
-                  expense.expense_date
+                  displayDate
                 )}
               </p>
 
             </div>
 
-            <div className="text-left sm:text-right">
+            <div className="w-full min-w-0 text-left sm:w-auto sm:text-right">
 
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Total
@@ -851,7 +862,7 @@ export default function ExpenseDetails() {
         ================================================== */}
 
         {isEditing && isManual && (
-          <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="mb-6 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
             <div className="mb-6 flex items-start gap-4">
 
@@ -1041,7 +1052,7 @@ export default function ExpenseDetails() {
             BASIC INFORMATION
         ================================================== */}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
           <div className="mb-5 flex items-center gap-3">
 
@@ -1076,7 +1087,7 @@ export default function ExpenseDetails() {
             <Info
               label="Date"
               value={formatDate(
-                expense.expense_date
+                displayDate
               )}
             />
 
@@ -1140,7 +1151,7 @@ export default function ExpenseDetails() {
         ================================================== */}
 
         {isManual && (
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <section className="mt-6 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
             <div className="flex items-start gap-4">
 
@@ -1201,14 +1212,14 @@ export default function ExpenseDetails() {
                       key={
                         item.id
                       }
-                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+                      className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
                     >
 
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
                         <div>
 
-                          <h3 className="text-lg font-semibold">
+                          <h3 className="break-words text-lg font-semibold">
                             {item.item_name ||
                               "Unnamed Item"}
                           </h3>
@@ -1235,7 +1246,7 @@ export default function ExpenseDetails() {
 
                         </div>
 
-                        <div className="text-left sm:text-right">
+                        <div className="w-full min-w-0 text-left sm:w-auto sm:text-right">
 
                           <p className="text-xs uppercase tracking-wide text-slate-400">
                             Line Total
@@ -1288,7 +1299,7 @@ export default function ExpenseDetails() {
 
         {!isManual &&
           billData?.totals && (
-            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <section className="mt-6 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
               <h2 className="mb-5 text-lg font-semibold">
                 Bill Totals
@@ -1411,7 +1422,7 @@ export default function ExpenseDetails() {
 
         {!isManual &&
           validationData && (
-            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <section className="mt-6 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
 
               <div className="mb-5">
 
@@ -1503,11 +1514,11 @@ export default function ExpenseDetails() {
             BACK
         ================================================== */}
 
-        <div className="mt-8">
+        <div className="mt-8 w-full">
 
           <Link
             href="/history"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
           >
 
             <ArrowLeft
