@@ -1046,7 +1046,7 @@ export default function Insights() {
   }
 
   return (
-    <main className={`insights-page ${darkMode ? "insights-dark" : "insights-light"} min-h-screen text-slate-900`}>
+    <main className={`insights-page ${darkMode ? "insights-dark" : "insights-light"} min-h-screen bg-slate-50 text-slate-900`}>
 
       {/* ==================================================
           HEADER

@@ -151,7 +151,7 @@ const PENDING_BILL_KEY = "real-cost-pending-bill";
 const MANUAL_CATEGORIES = [
   "Food & Dining",
   "Groceries",
-  "Transport",
+  "Transport/Travel",
   "Shopping",
   "Electronics",
   "Clothing",
@@ -159,7 +159,7 @@ const MANUAL_CATEGORIES = [
   "Entertainment",
   "Bills & Utilities",
   "Education",
-  "Travel",
+  "Sports",
   "Home",
   "Personal Care",
   "Services",
