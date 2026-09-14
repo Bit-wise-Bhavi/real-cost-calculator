@@ -771,7 +771,7 @@ Do not invent information.
           is_bill: false,
 
           error:
-            bill.reason ||
+            // bill.reason ||
             "This image does not appear to be a bill or receipt.",
         },
         { status: 422 }
@@ -941,19 +941,19 @@ Do not invent information.
     ) {
       const taxableValue =
         typeof item?.taxable_value === "number" &&
-        Number.isFinite(item.taxable_value)
+          Number.isFinite(item.taxable_value)
           ? item.taxable_value
           : null;
 
       const rate =
         typeof item?.[rateKey] === "number" &&
-        Number.isFinite(item[rateKey])
+          Number.isFinite(item[rateKey])
           ? item[rateKey]
           : null;
 
       const printedAmount =
         typeof item?.[amountKey] === "number" &&
-        Number.isFinite(item[amountKey])
+          Number.isFinite(item[amountKey])
           ? item[amountKey]
           : null;
 
@@ -1074,7 +1074,7 @@ Do not invent information.
 
     const reportedTotal =
       typeof bill.totals.total_invoice_value ===
-      "number"
+        "number"
         ? bill.totals.total_invoice_value
         : null;
 
@@ -1084,7 +1084,7 @@ Do not invent information.
 
     const printedOtherCharges =
       typeof bill.totals.total_other_charges ===
-      "number"
+        "number"
         ? bill.totals.total_other_charges
         : 0;
 
@@ -1096,13 +1096,13 @@ Do not invent information.
     const calculatedInvoiceTotal =
       calculatedItemBase !== null
         ? Number(
-            (
-              calculatedItemBase +
-              calculatedTax +
-              printedOtherCharges +
-              printedRoundOff
-            ).toFixed(2)
-          )
+          (
+            calculatedItemBase +
+            calculatedTax +
+            printedOtherCharges +
+            printedRoundOff
+          ).toFixed(2)
+        )
         : null;
 
     let difference = null;
