@@ -36,11 +36,10 @@ function formatMoney(
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: 0,
     }).format(value);
   } catch {
-    return `₹${Number(value).toFixed(2)}`;
+    return `₹${Math.round(value)}`;
   }
 }
 
@@ -58,14 +57,11 @@ function formatDate(
     return value;
   }
 
-  return new Intl.DateTimeFormat(
-    "en-IN",
-    {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }
-  ).format(date);
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 function getExpenseTitle(
@@ -95,16 +91,6 @@ function getExpenseTitle(
   return expense.source === "manual"
     ? "Manual Expense"
     : "Bill Expense";
-}
-
-function getDateKey(
-  date: Date
-) {
-  return `${date.getFullYear()}-${String(
-    date.getMonth() + 1
-  ).padStart(2, "0")}-${String(
-    date.getDate()
-  ).padStart(2, "0")}`;
 }
 
 export default function Dashboard() {
@@ -195,83 +181,14 @@ export default function Dashboard() {
   }, []);
 
   // ==================================================
-  // DATE RANGE
+  // CURRENT MONTH
   // ==================================================
-
-  const today = useMemo(
-    () => new Date(),
-    []
-  );
-
-  const todayKey = useMemo(
-    () => getDateKey(today),
-    [today]
-  );
-
-  const sevenDaysAgo = useMemo(() => {
-    const date = new Date(today);
-
-    date.setDate(
-      date.getDate() - 6
-    );
-
-    return date;
-  }, [today]);
-
-  const sevenDaysAgoKey = useMemo(
-    () => getDateKey(sevenDaysAgo),
-    [sevenDaysAgo]
-  );
 
   const currentMonth =
-    today.getMonth();
+    new Date().getMonth();
 
   const currentYear =
-    today.getFullYear();
-
-  // ==================================================
-  // LAST 7 DAYS EXPENSES
-  // ==================================================
-
-  const last7DaysExpenses =
-    useMemo(() => {
-      return expenses.filter(
-        (expense) => {
-          if (!expense.expense_date) {
-            return false;
-          }
-
-          const date =
-            new Date(
-              `${expense.expense_date}T00:00:00`
-            );
-
-          if (
-            Number.isNaN(
-              date.getTime()
-            )
-          ) {
-            return false;
-          }
-
-          const key =
-            getDateKey(date);
-
-          return (
-            key >= sevenDaysAgoKey &&
-            key <= todayKey
-          );
-        }
-      );
-    }, [
-      expenses,
-      sevenDaysAgoKey,
-      todayKey,
-    ]);
-
-  // ==================================================
-  // THIS MONTH
-  // ==================================================
+    new Date().getFullYear();
 
   const thisMonthExpenses =
     useMemo(() => {
@@ -301,28 +218,8 @@ export default function Dashboard() {
     ]);
 
   // ==================================================
-  // TOTALS
+  // TOTAL SPENDING
   // ==================================================
-
-  const last7DaysSpent =
-    useMemo(() => {
-      return last7DaysExpenses.reduce(
-        (sum, expense) =>
-          sum +
-          (Number(expense.amount) || 0),
-        0
-      );
-    }, [last7DaysExpenses]);
-
-  const monthSpent =
-    useMemo(() => {
-      return thisMonthExpenses.reduce(
-        (sum, expense) =>
-          sum +
-          (Number(expense.amount) || 0),
-        0
-      );
-    }, [thisMonthExpenses]);
 
   const totalSpent =
     useMemo(() => {
@@ -334,80 +231,18 @@ export default function Dashboard() {
       );
     }, [expenses]);
 
-  // ==================================================
-  // LAST 7 DAYS DAILY SPENDING
-  // ==================================================
-
-  const dailySpending =
+  const monthSpent =
     useMemo(() => {
-      const days = [];
-
-      for (
-        let i = 0;
-        i < 7;
-        i++
-      ) {
-        const date =
-          new Date(
-            sevenDaysAgo
-          );
-
-        date.setDate(
-          sevenDaysAgo.getDate() +
-          i
-        );
-
-        const key =
-          getDateKey(date);
-
-        const amount =
-          last7DaysExpenses
-            .filter(
-              (expense) =>
-                expense.expense_date ===
-                key
-            )
-            .reduce(
-              (sum, expense) =>
-                sum +
-                (Number(
-                  expense.amount
-                ) || 0),
-              0
-            );
-
-        days.push({
-          key,
-          date,
-          amount,
-          label:
-            new Intl.DateTimeFormat(
-              "en-IN",
-              {
-                weekday: "short",
-              }
-            ).format(date),
-          dayNumber:
-            date.getDate(),
-        });
-      }
-
-      return days;
-    }, [
-      last7DaysExpenses,
-      sevenDaysAgo,
-    ]);
-
-  const maxDailyAmount =
-    Math.max(
-      ...dailySpending.map(
-        (day) => day.amount
-      ),
-      1
-    );
+      return thisMonthExpenses.reduce(
+        (sum, expense) =>
+          sum +
+          (Number(expense.amount) || 0),
+        0
+      );
+    }, [thisMonthExpenses]);
 
   // ==================================================
-  // LAST 7 DAYS CATEGORY BREAKDOWN
+  // CATEGORY BREAKDOWN
   // ==================================================
 
   const categoryBreakdown =
@@ -418,7 +253,7 @@ export default function Dashboard() {
           number
         >();
 
-      for (const expense of last7DaysExpenses) {
+      for (const expense of expenses) {
         const category =
           expense.category ||
           "Uncategorized";
@@ -451,7 +286,7 @@ export default function Dashboard() {
             b.amount -
             a.amount
         );
-    }, [last7DaysExpenses]);
+    }, [expenses]);
 
   const largestCategory =
     categoryBreakdown[0];
@@ -584,7 +419,10 @@ export default function Dashboard() {
 
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
 
-          <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-3 rounded-xl"
+          >
 
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
               <Receipt size={21} />
@@ -600,7 +438,7 @@ export default function Dashboard() {
               </p>
             </div>
 
-          </div>
+          </Link>
 
           <div className="flex items-center gap-2">
 
@@ -609,13 +447,6 @@ export default function Dashboard() {
               className="hidden rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:block"
             >
               History
-            </Link>
-
-            <Link
-              href="/insights"
-              className="hidden rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:block"
-            >
-              Insights
             </Link>
 
             <Link
@@ -651,9 +482,9 @@ export default function Dashboard() {
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            A snapshot of your actual recorded
-            spending. No estimates, assumptions,
-            or made-up numbers.
+            Real Cost uses the expenses you've
+            actually recorded. No estimates,
+            assumptions or made-up numbers.
           </p>
 
         </section>
@@ -712,7 +543,7 @@ export default function Dashboard() {
 
               <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-                {/* LAST 7 DAYS */}
+                {/* TOTAL SPENT */}
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
@@ -721,12 +552,12 @@ export default function Dashboard() {
                     <div>
 
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                        Last 7 Days
+                        Total Spent
                       </p>
 
                       <p className="mt-2 text-2xl font-bold text-slate-950">
                         {formatMoney(
-                          last7DaysSpent,
+                          totalSpent,
                           currency
                         )}
                       </p>
@@ -745,10 +576,7 @@ export default function Dashboard() {
                   </div>
 
                   <p className="mt-3 text-xs text-slate-500">
-                    {last7DaysExpenses.length} expense
-                    {last7DaysExpenses.length === 1
-                      ? ""
-                      : "s"} recorded
+                    Across all recorded expenses
                   </p>
 
                 </div>
@@ -794,7 +622,7 @@ export default function Dashboard() {
 
                 </div>
 
-                {/* TRANSACTIONS */}
+                {/* EXPENSE COUNT */}
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
@@ -835,7 +663,7 @@ export default function Dashboard() {
 
                   <div className="flex items-start justify-between">
 
-                    <div className="min-w-0">
+                    <div>
 
                       <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                         Top Category
@@ -849,7 +677,7 @@ export default function Dashboard() {
 
                     </div>
 
-                    <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
 
                       <TrendingUp
                         size={19}
@@ -862,10 +690,10 @@ export default function Dashboard() {
 
                   <p className="mt-3 text-xs text-slate-500">
                     {largestCategory
-                      ? `${formatMoney(
+                      ? formatMoney(
                         largestCategory.amount,
                         currency
-                      )} in last 7 days`
+                      )
                       : "No data yet"}
                   </p>
 
@@ -874,107 +702,14 @@ export default function Dashboard() {
               </section>
 
               {/* ==================================================
-                  LAST 7 DAYS + CATEGORY
+                  MAIN GRID
               ================================================== */}
 
               <section className="mt-6 grid gap-6 lg:grid-cols-2">
 
-                {/* DAILY SPENDING */}
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
-                  <div className="mb-6">
-
-                    <h3 className="text-lg font-semibold">
-                      Spending — Last 7 Days
-                    </h3>
-
-                    <p className="mt-1 text-sm text-slate-500">
-                      Your actual daily spending.
-                    </p>
-
-                  </div>
-
-                  <div className="flex h-[250px] items-end gap-2 sm:gap-3">
-
-                    {dailySpending.map(
-                      (day) => {
-
-                        const height =
-                          day.amount > 0
-                            ? (
-                              day.amount /
-                              maxDailyAmount
-                            ) *
-                            100
-                            : 0;
-
-                        return (
-                          <div
-                            key={
-                              day.key
-                            }
-                            className="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
-                          >
-
-                            <div className="mb-2 h-5 text-center">
-
-                              {day.amount >
-                                0 && (
-                                  <p className="whitespace-nowrap text-[10px] font-semibold text-slate-600 sm:text-[11px]">
-                                    {formatMoney(
-                                      day.amount,
-                                      currency
-                                    )}
-                                  </p>
-                                )}
-
-                            </div>
-
-                            <div className="flex h-[170px] w-full items-end justify-center">
-
-                              <div
-                                className="w-full max-w-[42px] rounded-t-lg bg-slate-800 transition-all"
-                                style={{
-                                  height:
-                                    day.amount >
-                                      0
-                                      ? `${Math.max(
-                                        height,
-                                        4
-                                      )}%`
-                                      : "2%",
-                                }}
-                                title={`${day.label} ${day.dayNumber}: ${formatMoney(
-                                  day.amount,
-                                  currency
-                                )}`}
-                              />
-
-                            </div>
-
-                            <div className="mt-3 text-center">
-
-                              <p className="text-xs font-medium text-slate-500">
-                                {day.label}
-                              </p>
-
-                              <p className="text-[11px] text-slate-400">
-                                {day.dayNumber}
-                              </p>
-
-                            </div>
-
-                          </div>
-                        );
-                      }
-                    )}
-
-                  </div>
-
-                </div>
-
-                {/* CATEGORY */}
+                {/* ==================================================
+                    CATEGORY BREAKDOWN
+                ================================================== */}
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
@@ -985,7 +720,7 @@ export default function Dashboard() {
                     </h3>
 
                     <p className="mt-1 text-sm text-slate-500">
-                      Where your money went in the last 7 days.
+                      Where your recorded money is going.
                     </p>
 
                   </div>
@@ -1009,11 +744,11 @@ export default function Dashboard() {
                           ) => {
 
                             const percentage =
-                              last7DaysSpent >
+                              totalSpent >
                                 0
                                 ? (
                                   category.amount /
-                                  last7DaysSpent
+                                  totalSpent
                                 ) *
                                 100
                                 : 0;
@@ -1044,7 +779,7 @@ export default function Dashboard() {
 
                                     <span className="ml-2 text-xs text-slate-400">
                                       {percentage.toFixed(
-                                        1
+                                        0
                                       )}
                                       %
                                     </span>
@@ -1078,101 +813,101 @@ export default function Dashboard() {
 
                 </div>
 
-              </section>
+                {/* ==================================================
+                    MONTHLY TREND
+                ================================================== */}
 
-              {/* ==================================================
-                  MONTHLY TREND
-              ================================================== */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
-              <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mb-6">
 
-                <div className="mb-6">
+                    <h3 className="text-lg font-semibold">
+                      Monthly Spending
+                    </h3>
 
-                  <h3 className="text-lg font-semibold">
-                    Monthly Spending
-                  </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Spending recorded over the last few months.
+                    </p>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Spending recorded over the last few months.
-                  </p>
-
-                </div>
-
-                {monthlyTrend.length ===
-                  0 ? (
-
-                  <div className="flex min-h-[250px] items-center justify-center text-sm text-slate-400">
-                    No monthly data yet.
                   </div>
 
-                ) : (
+                  {monthlyTrend.length ===
+                    0 ? (
 
-                  <div className="flex h-[250px] items-end gap-3">
+                    <div className="flex min-h-[250px] items-center justify-center text-sm text-slate-400">
+                      No monthly data yet.
+                    </div>
 
-                    {monthlyTrend.map(
-                      (month) => {
+                  ) : (
 
-                        const height =
-                          (
-                            month.amount /
-                            maxMonthlyAmount
-                          ) *
-                          100;
+                    <div className="flex h-[250px] items-end gap-3">
 
-                        return (
-                          <div
-                            key={
-                              month.key
-                            }
-                            className="flex h-full flex-1 flex-col items-center justify-end"
-                          >
+                      {monthlyTrend.map(
+                        (month) => {
 
-                            <div className="mb-2 text-center">
+                          const height =
+                            (
+                              month.amount /
+                              maxMonthlyAmount
+                            ) *
+                            100;
 
-                              <p className="text-[11px] font-semibold text-slate-600">
-                                {formatMoney(
-                                  month.amount,
-                                  currency
-                                )}
+                          return (
+                            <div
+                              key={
+                                month.key
+                              }
+                              className="flex h-full flex-1 flex-col items-center justify-end"
+                            >
+
+                              <div className="mb-2 text-center">
+
+                                <p className="text-[11px] font-semibold text-slate-600">
+                                  {formatMoney(
+                                    month.amount,
+                                    currency
+                                  )}
+                                </p>
+
+                              </div>
+
+                              <div className="flex h-[170px] w-full items-end justify-center">
+
+                                <div
+                                  className="w-full max-w-[55px] rounded-t-lg bg-slate-800 transition-all"
+                                  style={{
+                                    height: `${Math.max(
+                                      height,
+                                      4
+                                    )}%`,
+                                  }}
+                                  title={`${month.label}: ${formatMoney(
+                                    month.amount,
+                                    currency
+                                  )}`}
+                                />
+
+                              </div>
+
+                              <p className="mt-3 text-xs font-medium text-slate-500">
+                                {month.label}
                               </p>
 
                             </div>
+                          );
+                        }
+                      )}
 
-                            <div className="flex h-[170px] w-full items-end justify-center">
+                    </div>
 
-                              <div
-                                className="w-full max-w-[55px] rounded-t-lg bg-slate-800 transition-all"
-                                style={{
-                                  height: `${Math.max(
-                                    height,
-                                    4
-                                  )}%`,
-                                }}
-                                title={`${month.label}: ${formatMoney(
-                                  month.amount,
-                                  currency
-                                )}`}
-                              />
+                  )}
 
-                            </div>
-
-                            <p className="mt-3 text-xs font-medium text-slate-500">
-                              {month.label}
-                            </p>
-
-                          </div>
-                        );
-                      }
-                    )}
-
-                  </div>
-
-                )}
+                </div>
 
               </section>
 
               {/* ==================================================
-                  EXPENSE SOURCES
+                  SOURCES
               ================================================== */}
 
               <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -1311,12 +1046,11 @@ export default function Dashboard() {
                     {recentExpenses.map(
                       (expense) => (
 
-                        <Link
+                        <div
                           key={
                             expense.id
                           }
-                          href={`/history/${expense.id}`}
-                          className="flex items-center justify-between gap-4 py-4 transition hover:bg-slate-50"
+                          className="flex items-center justify-between gap-4 py-4"
                         >
 
                           <div className="flex min-w-0 items-center gap-3">
@@ -1375,7 +1109,7 @@ export default function Dashboard() {
 
                           </p>
 
-                        </Link>
+                        </div>
 
                       )
                     )}
@@ -1387,43 +1121,7 @@ export default function Dashboard() {
               </section>
 
               {/* ==================================================
-                  ALL-TIME SUMMARY
-              ================================================== */}
-
-              {expenses.length >
-                0 && (
-                  <section className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-
-                    <div>
-
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                        All-Time Recorded Spending
-                      </p>
-
-                      <p className="mt-1 text-2xl font-bold text-slate-950">
-                        {formatMoney(
-                          totalSpent,
-                          currency
-                        )}
-                      </p>
-
-                    </div>
-
-                    <Link
-                      href="/insights"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-                    >
-                      Explore Insights
-                      <ChevronRight
-                        size={16}
-                      />
-                    </Link>
-
-                  </section>
-                )}
-
-              {/* ==================================================
-                  EMPTY STATE
+                  EMPTY STATE ACTION
               ================================================== */}
 
               {expenses.length ===

@@ -27,7 +27,6 @@ type Expense = {
   invoice_number: string | null;
   vendor_name: string | null;
   purchase_type: string | null;
-  bill_data: any;
   created_at: string | null;
 };
 
@@ -100,20 +99,6 @@ function formatDate(
   ).format(date);
 }
 
-function getDisplayDate(expense: Expense) {
-  if (
-    expense.source === "bill" &&
-    typeof expense.bill_data?.invoice?.invoice_date === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(
-      expense.bill_data.invoice.invoice_date
-    )
-  ) {
-    return expense.bill_data.invoice.invoice_date;
-  }
-
-  return expense.expense_date;
-}
-
 function getSourceLabel(
   source: string | null
 ) {
@@ -184,18 +169,19 @@ export default function ExpenseHistory() {
   // ==================================================
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadExpenses(showLoader = true) {
-      if (showLoader) {
-        setLoading(true);
-      }
+    async function loadExpenses() {
+      setLoading(true);
       setError(null);
 
       try {
+        // ============================================
+        // GET CURRENT SESSION
+        // ============================================
+
         const {
           data: { session },
-        } = await supabaseBrowser.auth.getSession();
+        } =
+          await supabaseBrowser.auth.getSession();
 
         if (!session) {
           throw new Error(
@@ -203,105 +189,67 @@ export default function ExpenseHistory() {
           );
         }
 
+        // ============================================
+        // FETCH USER'S EXPENSES
+        // RLS ensures only the user's rows are returned
+        // ============================================
+
         const {
           data,
           error: fetchError,
-        } = await supabaseBrowser
-          .from("expenses")
-          .select(
-            `
-              id,
-              source,
-              amount,
-              currency,
-              category,
-              expense_date,
-              description,
-              invoice_number,
-              vendor_name,
-              purchase_type,
-              bill_data,
-              created_at
-            `
-          )
-          .order("expense_date", { ascending: false })
-          .order("created_at", { ascending: false });
+        } =
+          await supabaseBrowser
+            .from("expenses")
+            .select(
+              `
+                id,
+                source,
+                amount,
+                currency,
+                category,
+                expense_date,
+                description,
+                invoice_number,
+                vendor_name,
+                purchase_type,
+                created_at
+              `
+            )
+            .order(
+              "expense_date",
+              {
+                ascending: false,
+              }
+            )
+            .order(
+              "created_at",
+              {
+                ascending: false,
+              }
+            );
 
         if (fetchError) {
-          throw new Error(fetchError.message);
-        }
-
-        if (!cancelled) {
-          const loadedExpenses =
-            (data || []) as Expense[];
-
-          // Scanned bills use the printed invoice date stored
-          // in bill_data. Kaccha Bills keep expense_date.
-          loadedExpenses.sort((a, b) => {
-            const dateA =
-              getDisplayDate(a) || "";
-            const dateB =
-              getDisplayDate(b) || "";
-
-            if (dateA === dateB) {
-              return (
-                new Date(
-                  b.created_at || 0
-                ).getTime() -
-                new Date(
-                  a.created_at || 0
-                ).getTime()
-              );
-            }
-
-            return dateB.localeCompare(dateA);
-          });
-
-          setExpenses(loadedExpenses);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load expenses."
+          throw new Error(
+            fetchError.message
           );
         }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
 
-    function refreshWhenReturningToHistory() {
-      if (document.visibilityState === "visible") {
-        loadExpenses(false);
+        setExpenses(
+          (data || []) as Expense[]
+        );
+
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load expenses."
+        );
+      } finally {
+        setLoading(false);
       }
     }
 
     loadExpenses();
-
-    window.addEventListener(
-      "pageshow",
-      refreshWhenReturningToHistory
-    );
-    document.addEventListener(
-      "visibilitychange",
-      refreshWhenReturningToHistory
-    );
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener(
-        "pageshow",
-        refreshWhenReturningToHistory
-      );
-      document.removeEventListener(
-        "visibilitychange",
-        refreshWhenReturningToHistory
-      );
-    };
   }, []);
 
   // ==================================================
@@ -408,9 +356,12 @@ export default function ExpenseHistory() {
 
       <header className="border-b border-slate-200 bg-white">
 
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
 
-          <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-3 rounded-xl"
+          >
 
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
 
@@ -430,7 +381,7 @@ export default function ExpenseHistory() {
 
             </div>
 
-          </div>
+          </Link>
 
           <Link
             href="/"
@@ -451,7 +402,7 @@ export default function ExpenseHistory() {
           MAIN
       ================================================== */}
 
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl px-6 py-10">
 
         {/* ==================================================
             PAGE TITLE
@@ -902,7 +853,7 @@ export default function ExpenseHistory() {
                             />
 
                             {formatDate(
-                              getDisplayDate(expense)
+                              expense.expense_date
                             )}
 
                           </div>
